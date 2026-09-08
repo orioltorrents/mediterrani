@@ -1,0 +1,11 @@
+{
+  "name": "mediterrani/app",
+  "description": "Aplicació PHP per a Mediterrani",
+  "type": "project",
+  "require": {
+    "google/apiclient": "^2.19"
+  },
+  "scripts": {
+    "check": "php scripts/check-code-quality.php"
+  }
+}

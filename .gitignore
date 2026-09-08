@@ -1,0 +1,10 @@
+/.env
+/vendor/
+/storage/logs/*
+/storage/cache/*
+/storage/certs/
+/storage/backups/
+/storage/credentials/
+/storage/imports/notes/*.csv
+.DS_Store
+/assets/
