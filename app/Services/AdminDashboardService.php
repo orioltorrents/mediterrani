@@ -34,6 +34,8 @@ class AdminDashboardService
         $teamService = new AdminTeamService($this->pdo);
         $studentsWithTeams = $teamService->studentsWithTeams();
         $availableTeams = $teamService->availableTeams();
+        $teamsWithMembers = $teamService->teamsWithMembers();
+        $evidenceSummary = (new AdminEvidenceService($this->pdo))->summary();
 
         $roleMap = [];
         foreach ($userRoles as $row) {
@@ -176,6 +178,8 @@ class AdminDashboardService
             'indicators' => $indicators,
             'studentsWithTeams' => $studentsWithTeams,
             'availableTeams' => $availableTeams,
+            'teamsWithMembers' => $teamsWithMembers,
+            'evidenceSummary' => $evidenceSummary,
             'geoMapPoints' => $this->userService->buildGeoMapPoints($analytics['geo_stats'] ?? []),
         ];
     }
@@ -201,9 +205,28 @@ class AdminDashboardService
     {
         try {
             $stmt = $this->pdo->query(
-                'SELECT c.id, c.class_name AS name, c.class_code AS code, c.academic_year_id, ay.name AS academic_year_name
+                'SELECT c.id, c.class_name AS name, c.class_code AS code, c.academic_year_id, ay.name AS academic_year_name,
+                        COUNT(DISTINCT cm.user_id) AS student_count,
+                        COUNT(DISTINCT pt.id) AS team_count,
+                        COALESCE(tc.teams_of_3, 0) AS teams_of_3,
+                        COALESCE(tc.teams_of_4, 0) AS teams_of_4
                    FROM classes c
                    INNER JOIN academic_years ay ON ay.id = c.academic_year_id
+                   LEFT JOIN class_members cm ON cm.class_id = c.id
+                   LEFT JOIN project_teams pt ON pt.class_id = c.id
+                   LEFT JOIN (
+                       SELECT pt2.class_id,
+                              SUM(CASE WHEN COALESCE(tm.member_count, 0) = 3 THEN 1 ELSE 0 END) AS teams_of_3,
+                              SUM(CASE WHEN COALESCE(tm.member_count, 0) = 4 THEN 1 ELSE 0 END) AS teams_of_4
+                         FROM project_teams pt2
+                         LEFT JOIN (
+                             SELECT project_team_id, COUNT(*) AS member_count
+                               FROM project_team_members
+                              GROUP BY project_team_id
+                         ) tm ON tm.project_team_id = pt2.id
+                        GROUP BY pt2.class_id
+                   ) tc ON tc.class_id = c.id
+                  GROUP BY c.id, c.class_name, c.class_code, c.academic_year_id, ay.name
                   ORDER BY ay.start_year ASC, c.class_code ASC'
             );
 

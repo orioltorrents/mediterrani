@@ -87,6 +87,13 @@ class AdminActionService
             return $result;
         }
 
+        if ($action === 'import_classrooms') {
+            $result = (new AdminClassroomService($this->pdo))->importUploadedFile($files['classrooms_file'] ?? []);
+            $this->auditAdminAction($action);
+
+            return $result;
+        }
+
         if ($action === 'import_classroom_members') {
             $result = (new AdminClassroomService($this->pdo))->importMembersUploadedFile($files['classroom_members_file'] ?? []);
             $this->auditAdminAction($action);

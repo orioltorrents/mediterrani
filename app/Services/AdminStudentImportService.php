@@ -44,23 +44,22 @@ class AdminStudentImportService
                 $data[$header] = isset($row[$index]) ? (string) $row[$index] : '';
             }
 
-            $name = trim($data['name'] ?? $data['nom'] ?? '');
-            $surname = trim($data['surname'] ?? $data['cognoms'] ?? '');
-            $email = strtolower(trim($data['email'] ?? ''));
-            $password = trim($data['password'] ?? '');
+            $name = trim($data['users_name'] ?? $data['name'] ?? $data['nom'] ?? '');
+            $surname = trim($data['users_surname'] ?? $data['surname'] ?? $data['cognoms'] ?? '');
+            $email = strtolower(trim($data['users_email'] ?? $data['email'] ?? ''));
+            $password = trim($data['users_password'] ?? $data['password'] ?? '');
             $classIdValue = trim($data['class_id'] ?? '');
-            $classCode = trim($data['class_code'] ?? $data['classid'] ?? '');
+            $classCode = trim($data['classes_class_code'] ?? $data['class_code'] ?? $data['classid'] ?? '');
             $className = trim($data['class'] ?? $data['classe'] ?? $data['class_name'] ?? $data['grup_classe'] ?? $data['grup_classes'] ?? '');
-            $rolesInput = trim($data['roles'] ?? $data['role'] ?? 'student');
-            $isActive = $this->parseImportBoolean($data['is_active'] ?? $data['active'] ?? $data['status'] ?? '');
-            $projectAcademicYearIdValue = trim($data['project_academic_year_id'] ?? $data['project_year_id'] ?? '');
+            $rolesInput = trim($data['web_roles_name'] ?? $data['roles'] ?? $data['role'] ?? 'student');
+            $isActive = $this->parseImportBoolean($data['users_is_active'] ?? $data['is_active'] ?? $data['active'] ?? $data['status'] ?? '');
+            $projectAcademicYearIdValue = trim($data['project_academic_years_id'] ?? $data['project_academic_year_id'] ?? $data['project_year_id'] ?? '');
             $projectIdValue = trim($data['project_id'] ?? '');
             $projectSlug = trim($data['project_slug'] ?? $data['project'] ?? '');
             $academicYearName = trim($data['academic_year'] ?? $data['academic_year_name'] ?? '');
-            $teamCode = trim($data['team_code'] ?? $data['team'] ?? '');
-            $teamName = trim($data['team_name'] ?? '');
-            $teamClassGroup = trim($data['class_group'] ?? '');
-            $projectRoleName = trim($data['project_role'] ?? $data['project_role_name'] ?? '');
+            $teamCode = trim($data['project_teams_team_code'] ?? $data['team_code'] ?? $data['team'] ?? '');
+            $teamName = trim($data['project_teams_team_name'] ?? $data['team_name'] ?? '');
+            $projectRoleName = trim($data['project_roles_id'] ?? $data['project_role'] ?? $data['project_role_name'] ?? '');
             if ($name === '' || $email === '') {
                 $errors[] = 'Fila ' . $lineNumber . ': falta nom o email.';
                 continue;
@@ -92,9 +91,15 @@ class AdminStudentImportService
                 }
 
                 $projectAcademicYearId = $this->resolveProjectAcademicYearId($projectAcademicYearIdValue, $projectIdValue, $projectSlug, $academicYearName);
-                if ($teamCode !== '') {
+                if ($teamName !== '' || $teamCode !== '') {
                     if ($projectAcademicYearId === null) {
-                        throw new RuntimeException('Cal `project_academic_year_id` o bé `project_slug` + `academic_year` per importar `team_code`.');
+                        throw new RuntimeException('Cal indicar `project_academic_years.id` per crear o assignar un equip.');
+                    }
+                    if ($teamCode === '') {
+                        $teamCode = $this->buildTeamCode((int) $projectAcademicYearId, $teamName);
+                    }
+                    if ($projectAcademicYearId === null) {
+                        throw new RuntimeException('No s’ha trobat cap equip amb aquest `project_teams.team_code`.');
                     }
 
                     $projectRoleIds = $this->resolveProjectRoleIds($projectRoleName);
@@ -109,7 +114,7 @@ class AdminStudentImportService
                         $teamCode,
                         $teamName,
                         $projectRoleIds,
-                        $teamClassGroup !== '' ? $teamClassGroup : ($className !== '' ? $className : $classCode)
+                        $classId
                     );
                     $teamAssignments++;
                 }
@@ -398,7 +403,7 @@ class AdminStudentImportService
         return null;
     }
 
-    private function syncProjectTeamMembership(int $userId, int $projectAcademicYearId, ?int $classId, string $teamCode, ?string $teamName, array $projectRoleIds, ?string $classGroup): int
+    private function syncProjectTeamMembership(int $userId, int $projectAcademicYearId, ?int $classId, string $teamCode, ?string $teamName, array $projectRoleIds, ?int $teamClassId): int
     {
         if ($classId !== null) {
             $classYearStmt = $this->pdo->prepare(
@@ -446,7 +451,7 @@ class AdminStudentImportService
             }
         }
 
-        $teamId = $this->findOrCreateProjectTeam($projectAcademicYearId, $teamCode, $teamName, $classGroup);
+        $teamId = $this->findOrCreateProjectTeam($projectAcademicYearId, $teamCode, $teamName, $teamClassId);
         $deleteStmt = $this->pdo->prepare(
             'DELETE ptm
              FROM project_team_members ptm
@@ -465,7 +470,7 @@ class AdminStudentImportService
         return $teamId;
     }
 
-    private function findOrCreateProjectTeam(int $projectAcademicYearId, string $teamCode, ?string $teamName, ?string $classGroup): int
+    private function findOrCreateProjectTeam(int $projectAcademicYearId, string $teamCode, ?string $teamName, ?int $classId): int
     {
         $normalizedTeamCode = trim($teamCode);
         if ($normalizedTeamCode === '') {
@@ -476,31 +481,116 @@ class AdminStudentImportService
         $existingStmt->execute(['project_academic_year_id' => $projectAcademicYearId, 'team_code' => $normalizedTeamCode]);
         $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
         $normalizedTeamName = trim((string) $teamName);
-        $normalizedClassGroup = trim((string) $classGroup);
+
+        if ($normalizedTeamName !== '' && $classId !== null) {
+            $existingByNameStmt = $this->pdo->prepare(
+                'SELECT id
+                   FROM project_teams
+                  WHERE project_academic_year_id = :project_academic_year_id
+                    AND class_id = :class_id
+                    AND team_name = :team_name
+                  LIMIT 1'
+            );
+            $existingByNameStmt->execute([
+                'project_academic_year_id' => $projectAcademicYearId,
+                'class_id' => $classId,
+                'team_name' => $normalizedTeamName,
+            ]);
+            $existingByName = $existingByNameStmt->fetchColumn();
+            if ($existingByName !== false) {
+                return (int) $existingByName;
+            }
+        }
 
         if ($existing !== false) {
             $updateStmt = $this->pdo->prepare(
                 'UPDATE project_teams
                  SET team_name = COALESCE(NULLIF(:team_name, ""), team_name),
-                     class_group = COALESCE(NULLIF(:class_group, ""), class_group)
-                 WHERE id = :id'
+                     class_id = COALESCE(:class_id, class_id)
+                  WHERE id = :id'
             );
-            $updateStmt->execute(['team_name' => $normalizedTeamName, 'class_group' => $normalizedClassGroup, 'id' => (int) $existing['id']]);
+            $updateStmt->execute(['team_name' => $normalizedTeamName, 'class_id' => $classId, 'id' => (int) $existing['id']]);
             return (int) $existing['id'];
         }
 
         $insertStmt = $this->pdo->prepare(
-            'INSERT INTO project_teams (project_academic_year_id, team_code, team_name, class_group, display_order, is_active)
-             VALUES (:project_academic_year_id, :team_code, :team_name, :class_group, 0, 1)'
+            'INSERT INTO project_teams (project_academic_year_id, team_code, team_name, class_id, display_order, is_active)
+             VALUES (:project_academic_year_id, :team_code, :team_name, :class_id, 0, 1)'
         );
         $insertStmt->execute([
             'project_academic_year_id' => $projectAcademicYearId,
             'team_code' => $normalizedTeamCode,
             'team_name' => $normalizedTeamName !== '' ? $normalizedTeamName : $normalizedTeamCode,
-            'class_group' => $normalizedClassGroup !== '' ? $normalizedClassGroup : null,
+            'class_id' => $classId,
         ]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    private function buildTeamCode(int $projectAcademicYearId, string $teamName): string
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.slug, ay.start_year, ay.end_year
+               FROM project_academic_years pay
+               INNER JOIN projects p ON p.id = pay.project_id
+               INNER JOIN academic_years ay ON ay.id = pay.academic_year_id
+              WHERE pay.id = :project_academic_year_id
+              LIMIT 1'
+        );
+        $stmt->execute([
+            'project_academic_year_id' => $projectAcademicYearId,
+        ]);
+        $context = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($context === false) {
+            throw new RuntimeException('No s’ha pogut resoldre el context per generar el codi de l’equip.');
+        }
+
+        $year = substr((string) $context['start_year'], -2) . '-' . substr((string) $context['end_year'], -2);
+        $project = strtolower(trim((string) ($context['slug'] ?? 'projecte')));
+        $teamSuffix = strtoupper(trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', $teamName), '-'));
+        if ($teamSuffix === '') {
+            throw new RuntimeException('El nom de l’equip és obligatori per generar el `team_code`.');
+        }
+
+        return $year . '_' . $project . '_' . $teamSuffix;
+    }
+
+    private function resolveProjectAcademicYearIdByTeamCode(string $teamCode): ?int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT project_academic_year_id
+               FROM project_teams
+              WHERE team_code = :team_code
+              ORDER BY id
+              LIMIT 2'
+        );
+        $stmt->execute(['team_code' => trim($teamCode)]);
+        $matches = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if (count($matches) > 1) {
+            throw new RuntimeException('El `project_teams.team_code` apareix en més d’una edició; cal indicar també l’edició del projecte.');
+        }
+
+        return $matches !== [] ? (int) $matches[0] : null;
+    }
+
+    private function ensureProjectTeamExists(int $projectAcademicYearId, string $teamCode): void
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id
+               FROM project_teams
+              WHERE project_academic_year_id = :project_academic_year_id
+                AND team_code = :team_code
+              LIMIT 1'
+        );
+        $stmt->execute([
+            'project_academic_year_id' => $projectAcademicYearId,
+            'team_code' => trim($teamCode),
+        ]);
+
+        if ($stmt->fetchColumn() === false) {
+            throw new RuntimeException('No existeix cap equip amb aquest `project_teams.team_code` dins de l’edició indicada.');
+        }
     }
 
     private function syncProjectTeamMemberRoles(int $projectTeamMemberId, array $projectRoleIds): void
@@ -523,6 +613,16 @@ class AdminStudentImportService
         $roleInput = trim($roleInput);
         if ($roleInput === '') {
             return [];
+        }
+
+        if (ctype_digit($roleInput)) {
+            $stmt = $this->pdo->prepare('SELECT id FROM project_roles WHERE id = :id LIMIT 1');
+            $stmt->execute(['id' => (int) $roleInput]);
+            if ($stmt->fetchColumn() === false) {
+                throw new RuntimeException('No existeix cap `project_roles.id` amb el valor indicat.');
+            }
+
+            return [(int) $roleInput];
         }
 
         $exactRoleId = $this->findProjectRoleId($roleInput);

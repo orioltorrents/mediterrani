@@ -35,6 +35,20 @@ $indicators = is_array($indicators ?? null) ? $indicators : [];
 $projectYearObjectivesMap = is_array($projectYearObjectivesMap ?? null) ? $projectYearObjectivesMap : [];
 $studentsWithTeams = is_array($studentsWithTeams ?? null) ? $studentsWithTeams : [];
 $availableTeams = is_array($availableTeams ?? null) ? $availableTeams : [];
+$teamsWithMembers = is_array($teamsWithMembers ?? null) ? $teamsWithMembers : [];
+$teamsByClass = [];
+$teamsOf3Count = 0;
+$teamsOf4Count = 0;
+foreach ($teamsWithMembers as $team) {
+    $classKey = (string) ($team['class_code'] ?? '');
+    $teamsByClass[$classKey !== '' ? $classKey : 'Sense classe'][] = $team;
+    $memberCount = count($team['members'] ?? []);
+    if ($memberCount === 3) {
+        $teamsOf3Count++;
+    } elseif ($memberCount === 4) {
+        $teamsOf4Count++;
+    }
+}
 
 $projectAcademicYearsByProject = [];
 foreach ($projectAcademicYears as $edition) {
@@ -273,11 +287,62 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
                     </div>
                 </div>
 
+                <!-- Secció Evidències -->
+                <div class="card admin-subpanel" style="padding: 1.25rem;">
+                    <h3 style="margin-top: 0; color: var(--ink); font-size: 1.1rem; border-bottom: 2px solid var(--border); padding-bottom: .4rem; margin-bottom: 1rem;">Evidències</h3>
+                    <div class="admin-summary__section-grid admin-summary__section-grid--dashboard admin-evidence-summary">
+                        <div class="admin-summary__card">
+                            <div class="admin-summary__icon">🗂️</div>
+                            <div class="admin-summary__body">
+                                <span class="admin-summary__label">Categories d'evidències</span>
+                                <strong class="admin-summary__value"><?= count($evidenceSummary['categories'] ?? []) ?></strong>
+                                <div class="admin-summary__breakdown" aria-label="Evidències per categoria">
+                                    <?php foreach (($evidenceSummary['categories'] ?? []) as $category): ?>
+                                        <div class="admin-summary__breakdown-row">
+                                            <span class="admin-evidence-label"><span class="admin-evidence-dot" style="--evidence-color: <?= htmlspecialchars((string) ($category['color_code'] ?? '#94a3b8'), ENT_QUOTES, 'UTF-8') ?>"></span><?= htmlspecialchars((string) ($category['nom'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                            <span class="admin-summary__breakdown-count"><?= (int) ($category['evidence_count'] ?? 0) ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="admin-summary__card">
+                            <div class="admin-summary__icon">🏷️</div>
+                            <div class="admin-summary__body">
+                                <span class="admin-summary__label">Tipus d'evidències</span>
+                                <strong class="admin-summary__value"><?= count($evidenceSummary['types'] ?? []) ?></strong>
+                                <div class="admin-summary__breakdown" aria-label="Evidències per tipus">
+                                    <?php foreach (($evidenceSummary['types'] ?? []) as $type): ?>
+                                        <div class="admin-summary__breakdown-row">
+                                            <span class="admin-evidence-label"><span class="admin-evidence-dot" style="--evidence-color: <?= htmlspecialchars((string) ($type['color_code'] ?? '#94a3b8'), ENT_QUOTES, 'UTF-8') ?>"></span><span><strong><?= htmlspecialchars((string) ($type['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong><small class="admin-evidence-category"><?= htmlspecialchars((string) ($type['category_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></span></span>
+                                            <span class="admin-summary__breakdown-count"><?= (int) ($type['evidence_count'] ?? 0) ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="admin-summary__card admin-evidence-summary__list-card">
+                            <div class="admin-summary__icon">📋</div>
+                            <div class="admin-summary__body">
+                                <span class="admin-summary__label">Evidències disponibles</span>
+                                <strong class="admin-summary__value"><?= (int) ($evidenceSummary['count'] ?? 0) ?></strong>
+                                <div class="admin-summary__breakdown" aria-label="Llista d'evidències">
+                                    <?php foreach (($evidenceSummary['evidences'] ?? []) as $evidence): ?>
+                                        <div class="admin-summary__breakdown-row admin-evidence-row">
+                                            <span class="admin-evidence-label"><span class="admin-evidence-dot" style="--evidence-color: <?= htmlspecialchars((string) ($evidence['color_code'] ?? '#94a3b8'), ENT_QUOTES, 'UTF-8') ?>"></span><?= htmlspecialchars((string) ($evidence['titol'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Secció Classroom -->
                 <div class="card admin-subpanel" style="padding: 1.25rem;">
                     <h3 style="margin-top: 0; color: var(--ink); font-size: 1.1rem; border-bottom: 2px solid var(--border); padding-bottom: .4rem; margin-bottom: 1rem;">Google Classroom</h3>
                     <div class="admin-summary__section-grid admin-summary__section-grid--dashboard">
-                        <div class="admin-summary__card"><div class="admin-summary__icon">🎓</div><div class="admin-summary__body"><span class="admin-summary__label">Classrooms</span><strong class="admin-summary__value"><?= count($classrooms) ?></strong><span class="admin-summary__desc"><?= $activeClassroomsCount ?> actius</span></div></div>
+                        <div class="admin-summary__card"><div class="admin-summary__icon">🎓</div><div class="admin-summary__body"><span class="admin-summary__label">Classrooms</span><strong class="admin-summary__value"><?= count($classrooms) ?></strong><div class="admin-summary__breakdown" aria-label="Classrooms i estat"><?php foreach ($classrooms as $classroom): ?><?php $classroomIsActive = (int) ($classroom['is_active'] ?? 0) === 1; ?><div class="admin-summary__breakdown-row admin-summary__project-row"><span class="admin-summary__breakdown-label"><?= htmlspecialchars((string) ($classroom['classroom_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span><span class="admin-summary__breakdown-status <?= $classroomIsActive ? 'admin-summary__breakdown-status--active' : 'admin-summary__breakdown-status--inactive' ?>"><?= $classroomIsActive ? 'Actiu' : 'Inactiu' ?></span></div><?php endforeach; ?></div></div></div>
                         <div class="admin-summary__card"><div class="admin-summary__icon">📝</div><div class="admin-summary__body"><span class="admin-summary__label">Tasques Classroom</span><strong class="admin-summary__value">0</strong><span class="admin-summary__desc">Pròximament</span></div></div>
                     </div>
                 </div>
@@ -419,7 +484,13 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
                             <button class="collapse-toggle" type="button" data-collapse="importar-usuaris-content">Mostrar</button>
                         </div>
                         <div id="importar-usuaris-content" class="admin-collapsible__content">
-                            <p class="muted">Columnes recomanades: <code>name,surname,email,password,class_code,roles,is_active</code>.</p>
+                            <p class="muted admin-csv-import__help">Capçaleres CSV: <code>users.name,users.surname,users.email,users.password,classes.class_code,web_roles.name,users.is_active,project_academic_years.id,project_teams.team_name,project_roles.id</code>.</p>
+                            <p class="muted admin-csv-import__help">Cal indicar l’edició del projecte, la classe, el nom de l’equip i un <code>project_roles.id</code> existent. Si l’equip no existeix dins de l’edició i la classe, es crea automàticament i el seu codi es construeix com <code>26-27_mediterrani_1ESOA-01</code>.</p>
+                            <p class="muted admin-csv-import__help">Exemple amb dades actuals: l’edició <code>4</code> és Mediterrani 2026-2027, la classe <code>26-27_1ESOA</code> existeix i el rol de projecte <code>1</code> és <code>generic</code>.</p>
+                            <pre class="admin-csv-import__example"><code>users.name,users.surname,users.email,users.password,classes.class_code,web_roles.name,users.is_active,project_academic_years.id,project_teams.team_name,project_roles.id
+Laia,Serra,laia.serra@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,1
+Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,1</code></pre>
+                            <p class="muted admin-csv-import__help">Aquest exemple crea el codi <code>26-27_mediterrani_1ESOA-01</code> i assigna els dos alumnes al mateix equip.</p>
                             <form class="admin-form" method="post" action="<?= url('admin') ?>" enctype="multipart/form-data">
                                 <input type="hidden" name="action" value="import_students">
                                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
@@ -507,17 +578,37 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
 
         <section id="classes" class="card admin-panel admin-collapsible is-collapsed">
             <div class="admin-panel__header"><h2>Classes</h2><div class="admin-actions"><span class="status"><?= count($classes) ?> classes</span><button class="collapse-toggle" type="button" data-collapse="classes-content">Mostrar</button></div></div>
-            <div id="classes-content" class="admin-collapsible__content"><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Classe</th><th>Codi</th><th>Curs</th></tr></thead><tbody><?php foreach ($classes as $class): ?><tr><td><?= htmlspecialchars((string) ($class['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($class['code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($class['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr><?php endforeach; ?></tbody></table></div></div>
+            <div id="classes-content" class="admin-collapsible__content"><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Curs</th><th>Classe</th><th>Codi</th><th>Alumnes</th><th>Equips</th><th>Equips de 3</th><th>Equips de 4</th></tr></thead><tbody><?php foreach ($classes as $class): ?><tr><td><?= htmlspecialchars((string) ($class['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($class['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($class['code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td class="admin-table__count-cell"><span class="status"><?= (int) ($class['student_count'] ?? 0) ?></span></td><td class="admin-table__count-cell"><span class="status"><?= (int) ($class['team_count'] ?? 0) ?></span></td><td class="admin-table__count-cell"><span class="status"><?= (int) ($class['teams_of_3'] ?? 0) ?></span></td><td class="admin-table__count-cell"><span class="status"><?= (int) ($class['teams_of_4'] ?? 0) ?></span></td></tr><?php endforeach; ?></tbody></table></div></div>
         </section>
 
         <section id="grups-alumnes" class="card admin-panel admin-collapsible is-collapsed">
             <div class="admin-panel__header">
-                <h2>Grups d'alumnes i equips</h2>
-                <div class="admin-actions"><span class="status"><?= count($studentsWithTeams) ?> alumnes</span><button class="collapse-toggle" type="button" data-collapse="grups-alumnes-content">Mostrar</button></div>
+                <h2>Equips</h2>
+                <div class="admin-actions"><span class="status"><?= count($teamsWithMembers) ?> equips</span><span class="status">3 membres: <?= $teamsOf3Count ?></span><span class="status">4 membres: <?= $teamsOf4Count ?></span><button class="collapse-toggle" type="button" data-collapse="grups-alumnes-content">Mostrar</button></div>
             </div>
             <div id="grups-alumnes-content" class="admin-collapsible__content">
-                <p class="muted">Visualitza i assigna cada alumne al seu grup o equip de projecte respectiu.</p>
-                <?php if ($studentsWithTeams !== []): ?>
+                <p class="muted">Equips de projecte amb els seus membres agrupats.</p>
+                <?php if ($teamsWithMembers !== []): ?>
+                    <div class="admin-team-classes">
+                        <?php foreach ($teamsByClass as $classCode => $classTeams): ?>
+                            <?php $classKey = 'teams-class-' . substr(md5($classCode), 0, 8); ?>
+                            <?php $classTeamsOf3 = count(array_filter($classTeams, static fn (array $team): bool => count($team['members'] ?? []) === 3)); ?>
+                            <?php $classTeamsOf4 = count(array_filter($classTeams, static fn (array $team): bool => count($team['members'] ?? []) === 4)); ?>
+                            <section class="admin-team-class admin-collapsible is-collapsed">
+                                <div class="admin-team-class__header"><h3><?= htmlspecialchars($classCode, ENT_QUOTES, 'UTF-8') ?></h3><div class="admin-actions"><span class="status"><?= count($classTeams) ?> equips</span><span class="status">3 membres: <?= $classTeamsOf3 ?></span><span class="status">4 membres: <?= $classTeamsOf4 ?></span><button class="collapse-toggle" type="button" data-collapse="<?= $classKey ?>">Mostrar</button></div></div>
+                                <div id="<?= $classKey ?>" class="admin-collapsible__content"><div class="admin-teams-grid">
+                                    <?php foreach ($classTeams as $team): ?>
+                                        <article class="admin-team-card">
+                                            <div class="admin-team-card__header"><div><h3><?= htmlspecialchars((string) ($team['team_name'] ?: $team['team_code']), ENT_QUOTES, 'UTF-8') ?></h3><p><?= htmlspecialchars((string) $team['team_code'], ENT_QUOTES, 'UTF-8') ?></p></div><span class="status" aria-label="Membres de l'equip"><?= count($team['members'] ?? []) ?></span></div>
+                                            <p class="admin-team-card__context"><?= htmlspecialchars((string) $team['project_name'], ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($team['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                                            <?php if (($team['members'] ?? []) !== []): ?><ul class="admin-team-members"><?php foreach ($team['members'] as $member): ?><li class="admin-team-member"><strong><?= htmlspecialchars((string) $member['name'], ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars((string) $member['email'], ENT_QUOTES, 'UTF-8') ?></small><form class="inline-form" method="post" action="<?= url('admin/impersonate-student') ?>"><input type="hidden" name="csrf_token" value="<?= $csrfToken ?>"><input type="hidden" name="student_id" value="<?= (int) $member['id'] ?>"><button class="button button--small button--secondary" type="submit">Veure com alumne</button></form></li><?php endforeach; ?></ul><?php else: ?><p class="muted">Sense membres assignats.</p><?php endif; ?>
+                                        </article>
+                                    <?php endforeach; ?>
+                                </div></div>
+                            </section>
+                        <?php endforeach; ?>
+                    </div>
+                <?php elseif ($studentsWithTeams !== []): ?>
                     <div class="admin-filters" data-user-filter="students-teams-table" data-count-target="students-teams-count" data-count-label="alumnes">
                         <label>Cerca<input type="search" data-user-search placeholder="Nom o email"></label>
                         <button class="admin-filters__chip is-active" type="button" data-value="all">Totes</button>
@@ -575,7 +666,22 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
 
         <section id="classroom" class="card admin-panel admin-collapsible is-collapsed">
             <div class="admin-panel__header"><h2>Classroom</h2><div class="admin-actions"><span class="status"><?= (int) ($classroomSummary['total'] ?? count($classrooms)) ?> classrooms</span><button class="collapse-toggle" type="button" data-collapse="classroom-content">Mostrar</button></div></div>
-            <div id="classroom-content" class="admin-collapsible__content"><?php if ($classrooms !== []): ?><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Nom</th><th>Clau</th><th>Curs</th><th>Estat</th></tr></thead><tbody><?php foreach ($classrooms as $classroom): ?><tr><td><?= htmlspecialchars((string) ($classroom['classroom_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['classroom_key'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= ((int) ($classroom['is_active'] ?? 0) === 1) ? 'Actiu' : 'Inactiu' ?></td></tr><?php endforeach; ?></tbody></table></div><?php else: ?><p class="muted">Encara no hi ha cap Classroom carregat.</p><?php endif; ?></div>
+            <div id="classroom-content" class="admin-collapsible__content">
+                <section class="card admin-subpanel">
+                    <h3>Importar Classrooms</h3>
+                    <p class="muted admin-csv-import__help">Headers obligatoris: <code>project_academic_years.id,classrooms.classroom_key,classrooms.classroom_name</code>. També pots afegir <code>classrooms.classroom_url,classrooms.google_classroom_id</code>.</p>
+                    <p class="muted admin-csv-import__help">L’edició del projecte és obligatòria perquè cada Classroom quedi vinculat al projecte i curs correctes.</p>
+                    <pre class="admin-csv-import__example"><code>project_academic_years.id,classrooms.classroom_key,classrooms.classroom_name,classrooms.classroom_url,classrooms.google_classroom_id
+4,1ESOA-MEDITERRANI,Mediterrani 1ESO A,https://classroom.google.com/c/123456,123456</code></pre>
+                    <form class="admin-form" method="post" action="<?= url('admin') ?>" enctype="multipart/form-data">
+                        <input type="hidden" name="action" value="import_classrooms">
+                        <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                        <label>Fitxer CSV<input type="file" name="classrooms_file" accept=".csv,text/csv" required></label>
+                        <button class="button" type="submit">Importar Classrooms</button>
+                    </form>
+                </section>
+                <?php if ($classrooms !== []): ?><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Nom</th><th>Clau</th><th>Curs</th><th>Estat</th></tr></thead><tbody><?php foreach ($classrooms as $classroom): ?><tr><td><?= htmlspecialchars((string) ($classroom['classroom_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['classroom_key'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= ((int) ($classroom['is_active'] ?? 0) === 1) ? 'Actiu' : 'Inactiu' ?></td></tr><?php endforeach; ?></tbody></table></div><?php else: ?><p class="muted">Encara no hi ha cap Classroom carregat.</p><?php endif; ?>
+            </div>
         </section>
 
         <section id="projectes" class="card admin-panel admin-collapsible is-collapsed">

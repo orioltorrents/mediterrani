@@ -73,9 +73,9 @@ class ClassroomLookupService
         if ($classroom !== false) {
             $update = $this->pdo->prepare(
                 "UPDATE classrooms
-                 SET classroom_name = CASE WHEN :classroom_name_input = '' THEN classroom_name ELSE :classroom_name END,
+                  SET classroom_name = CASE WHEN :classroom_name_input = '' THEN classroom_name ELSE :classroom_name END,
                      project_academic_year_id = COALESCE(project_academic_year_id, :project_academic_year_id),
-                     classroom_url = COALESCE(:classroom_url, classroom_url),
+                      classroom_url = COALESCE(:classroom_url, classroom_url),
                      google_classroom_id = COALESCE(:google_classroom_id, google_classroom_id),
                      is_active = 1,
                      updated_at = CURRENT_TIMESTAMP

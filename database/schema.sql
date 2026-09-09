@@ -167,14 +167,18 @@ CREATE TABLE project_teams (
     project_academic_year_id INT NOT NULL,
     team_code VARCHAR(50) NOT NULL,
     team_name VARCHAR(150) NULL,
+    class_id INT NULL,
     class_group VARCHAR(100) NULL,
     display_order INT NOT NULL DEFAULT 0,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_project_team_code (project_academic_year_id, team_code),
+    UNIQUE KEY uq_project_team_name_class (project_academic_year_id, class_id, team_name),
     KEY idx_project_teams_edition (project_academic_year_id),
+    KEY idx_project_teams_class (class_id),
     CONSTRAINT fk_project_teams_edition FOREIGN KEY (project_academic_year_id) REFERENCES project_academic_years(id) ON DELETE CASCADE
+    ,CONSTRAINT fk_project_teams_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE project_team_members (
@@ -273,14 +277,17 @@ CREATE TABLE classrooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     academic_year_id INT NOT NULL,
     project_academic_year_id INT NOT NULL,
-    classroom_key VARCHAR(100) NULL,
+    classroom_key VARCHAR(100) NOT NULL,
     classroom_name VARCHAR(255) NOT NULL,
-    classroom_url VARCHAR(255) NULL,
+    classroom_url VARCHAR(500) NULL,
     google_classroom_id VARCHAR(100) NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_classrooms_year (academic_year_id), KEY idx_classrooms_project_year (project_academic_year_id),
+    UNIQUE KEY uq_classrooms_key_year (academic_year_id, classroom_key),
+    UNIQUE KEY uq_classrooms_google_id (google_classroom_id),
+    KEY idx_classrooms_year (academic_year_id),
+    KEY idx_classrooms_project_year (project_academic_year_id),
     CONSTRAINT fk_classrooms_year FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
     CONSTRAINT fk_classrooms_project_year FOREIGN KEY (project_academic_year_id) REFERENCES project_academic_years(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

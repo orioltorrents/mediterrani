@@ -8,6 +8,7 @@ class AdminClassroomService
     private ClassroomLookupService $lookupService;
     private ClassroomMemberImportService $memberImportService;
     private ClassroomTaskImportService $taskImportService;
+    private ClassroomImportService $classroomImportService;
 
     public function __construct(private PDO $pdo)
     {
@@ -15,6 +16,12 @@ class AdminClassroomService
         $this->lookupService = new ClassroomLookupService($pdo);
         $this->memberImportService = new ClassroomMemberImportService($pdo, $this->csvImportService, $this->lookupService);
         $this->taskImportService = new ClassroomTaskImportService($pdo, $this->csvImportService, $this->lookupService);
+        $this->classroomImportService = new ClassroomImportService($pdo, $this->csvImportService, $this->lookupService);
+    }
+
+    public function importUploadedFile(array $file): array
+    {
+        return $this->classroomImportService->importUploadedFile($file);
     }
 
     public function toggleClassroom(array $input): array

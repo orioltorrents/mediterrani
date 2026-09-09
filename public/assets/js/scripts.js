@@ -163,6 +163,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const collapsibleContent = targetId ? document.getElementById(targetId) : null;
         const collapsibleCard = collapseBtn.closest('.admin-collapsible, .collapsible-card');
         if (!collapsibleCard || !collapsibleContent) return;
+        const storageKey = targetId ? `admin-collapse:${targetId}` : null;
+
+        if (storageKey) {
+            try {
+                const storedState = window.localStorage.getItem(storageKey);
+                if (storedState === 'open') {
+                    collapsibleCard.classList.remove('is-collapsed');
+                } else if (storedState === 'closed') {
+                    collapsibleCard.classList.add('is-collapsed');
+                }
+            } catch (error) {
+                // localStorage may be unavailable in private or restricted contexts.
+            }
+        }
 
         const syncButtonLabel = () => {
             collapseBtn.textContent = collapsibleCard.classList.contains('is-collapsed') ? 'Mostrar' : 'Amagar';
@@ -174,6 +188,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const willOpen = collapsibleCard.classList.contains('is-collapsed');
             collapsibleCard.classList.toggle('is-collapsed');
             syncButtonLabel();
+
+            if (storageKey) {
+                try {
+                    window.localStorage.setItem(storageKey, willOpen ? 'open' : 'closed');
+                } catch (error) {
+                    // Keep the collapsible functional if persistence is unavailable.
+                }
+            }
 
             if (willOpen && targetId === 'visites-content') {
                 window.setTimeout(refreshGeoMap, 420);

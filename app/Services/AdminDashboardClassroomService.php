@@ -19,22 +19,19 @@ class AdminDashboardClassroomService
                     c.classroom_url,
                     c.google_classroom_id,
                     c.is_active,
-                    GROUP_CONCAT(DISTINCT p.name ORDER BY p.display_order, p.name SEPARATOR ", ") AS project_names,
-                    GROUP_CONCAT(DISTINCT p.slug ORDER BY p.display_order, p.slug SEPARATOR ", ") AS project_slugs,
+                    p.name AS project_name,
+                    p.slug AS project_slug,
                     ay.name AS academic_year_name,
                     ay.is_current AS academic_year_is_current,
-                    COUNT(DISTINCT cm.id) AS member_count,
-                    COUNT(DISTINCT atcl.id) AS task_link_count
-                 FROM classrooms c
-                  INNER JOIN academic_years ay ON ay.id = c.academic_year_id
-                  LEFT JOIN classroom_project_academic_years cpay ON cpay.classroom_id = c.id AND cpay.is_active = 1
-                  LEFT JOIN project_academic_years pay ON pay.id = cpay.project_academic_year_id
-                  LEFT JOIN projects p ON p.id = pay.project_id
-                  LEFT JOIN classroom_members cm ON cm.classroom_id = c.id AND cm.is_active = 1
-                  LEFT JOIN assessment_task_classroom_links atcl ON atcl.classroom_id = c.id
-                  GROUP BY c.id, c.classroom_key, c.classroom_name, c.classroom_url, c.google_classroom_id, c.is_active,
-                           ay.name, ay.is_current, ay.start_year
-                  ORDER BY ay.is_current DESC, ay.start_year DESC, c.is_active DESC, c.classroom_name'
+                    0 AS member_count,
+                    0 AS task_link_count
+                  FROM classrooms c
+                   INNER JOIN academic_years ay ON ay.id = c.academic_year_id
+                   INNER JOIN project_academic_years pay ON pay.id = c.project_academic_year_id
+                   LEFT JOIN projects p ON p.id = pay.project_id
+                   GROUP BY c.id, c.classroom_key, c.classroom_name, c.classroom_url, c.google_classroom_id, c.is_active,
+                            ay.name, ay.is_current, ay.start_year, p.name, p.slug
+                   ORDER BY ay.is_current DESC, ay.start_year DESC, c.is_active DESC, c.classroom_name'
             );
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -51,9 +48,9 @@ class AdminDashboardClassroomService
                     COUNT(DISTINCT c.id) AS total,
                     COUNT(DISTINCT CASE WHEN c.is_active = 1 THEN c.id END) AS active,
                     COUNT(DISTINCT CASE WHEN c.is_active = 0 THEN c.id END) AS archived,
-                    COUNT(DISTINCT cm.id) AS members
-                 FROM classrooms c
-                 LEFT JOIN classroom_members cm ON cm.classroom_id = c.id'
+                     0 AS members
+                  FROM classrooms c
+                  '
             );
             $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
             $projectRows = $this->classroomProjectSummary();
@@ -79,12 +76,10 @@ class AdminDashboardClassroomService
                     p.name,
                     p.slug,
                     COUNT(DISTINCT c.id) AS classroom_count
-                 FROM classroom_project_academic_years cpay
-                 INNER JOIN classrooms c ON c.id = cpay.classroom_id
-                 INNER JOIN project_academic_years pay ON pay.id = cpay.project_academic_year_id
-                 INNER JOIN projects p ON p.id = pay.project_id
-                 WHERE cpay.is_active = 1
-                   AND c.is_active = 1
+                  FROM classrooms c
+                  INNER JOIN project_academic_years pay ON pay.id = c.project_academic_year_id
+                  INNER JOIN projects p ON p.id = pay.project_id
+                  WHERE c.is_active = 1
                  GROUP BY p.id, p.name, p.slug, p.display_order
                  ORDER BY p.display_order, p.name'
             );
