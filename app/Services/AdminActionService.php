@@ -73,6 +73,18 @@ class AdminActionService
             return $result;
         }
 
+        if ($action === 'sync_user_avatars') {
+            $result = (new UserAvatarService($this->pdo))->syncMatches();
+            $this->auditAdminAction($action, [
+                'updated' => (int) ($result['summary']['updated'] ?? 0),
+                'matches' => (int) ($result['summary']['matches'] ?? 0),
+                'unmatched_files' => (int) ($result['summary']['unmatched_files'] ?? 0),
+                'ambiguous_files' => (int) ($result['summary']['ambiguous_files'] ?? 0),
+            ]);
+
+            return $result;
+        }
+
         if ($action === 'update_student_team') {
             $result = (new AdminTeamService($this->pdo))->syncStudentTeam($post);
             $this->auditAdminAction($action);

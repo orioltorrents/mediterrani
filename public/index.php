@@ -42,6 +42,7 @@ require_once dirname(__DIR__) . '/app/Services/AdminTeamService.php';
 require_once dirname(__DIR__) . '/app/Services/AdminProjectService.php';
 require_once dirname(__DIR__) . '/app/Services/AdminStudentImportService.php';
 require_once dirname(__DIR__) . '/app/Services/AdminUserService.php';
+require_once dirname(__DIR__) . '/app/Services/UserAvatarService.php';
 require_once dirname(__DIR__) . '/app/Services/DocumentImportService.php';
 require_once dirname(__DIR__) . '/app/Services/DocumentService.php';
 require_once dirname(__DIR__) . '/app/Services/LogService.php';
@@ -214,6 +215,20 @@ $router->post('/admin/stop-impersonation', static function () use ($authService)
 
 $router->get('/admin/sync-documents', static fn (): string => $documentSyncController->index());
 $router->post('/admin/sync-documents', static fn (): string => $documentSyncController->store());
+
+$router->get('/user-avatar/{id}', static function (array $params) use ($authService): void {
+    $authService->requireRole('admin');
+    $authService->requirePasswordChangeCompleted();
+
+    $userId = isset($params['id']) ? (int) $params['id'] : 0;
+    if ($userId <= 0) {
+        http_response_code(404);
+        echo 'Foto no trobada';
+        return;
+    }
+
+    (new UserAvatarService(require dirname(__DIR__) . '/config/database.php'))->avatarResponse($userId);
+}, ['id' => '\\d+']);
 
 $router->get('/{lang}/projectes/{slug}/tasques', static function (array $params) use ($controller, $projectAcademicYearId): string {
     setLanguage((string) $params['lang'], true);

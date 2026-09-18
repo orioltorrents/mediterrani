@@ -6,5 +6,6 @@
 /storage/backups/
 /storage/credentials/
 /storage/imports/notes/*.csv
+/storage/uploads/*
 .DS_Store
 /assets/

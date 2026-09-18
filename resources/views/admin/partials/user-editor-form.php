@@ -4,6 +4,10 @@ $editableUserId = (int) ($editableUser['id'] ?? 0);
 $editableUserRoles = is_array($editableUser['roles'] ?? null) ? $editableUser['roles'] : [];
 $editableUserIsAdmin = in_array('admin', $editableUserRoles, true);
 $editableUserIsTeacher = in_array('teacher', $editableUserRoles, true);
+$editableUserIsStudent = in_array('student', $editableUserRoles, true);
+$editableUserClassId = isset($editableUser['class_id']) ? (int) $editableUser['class_id'] : null;
+$editableUserClassCode = (string) ($editableUser['class_code'] ?? '');
+$editableUserTeamId = isset($studentTeamIds[$editableUserId]) ? (int) $studentTeamIds[$editableUserId] : null;
 ?>
 <form class="admin-form admin-form--compact" method="post" action="<?= url('admin') ?>">
     <input type="hidden" name="action" value="update_student">
@@ -15,6 +19,9 @@ $editableUserIsTeacher = in_array('teacher', $editableUserRoles, true);
         <label>Email<input type="email" name="email" value="<?= htmlspecialchars((string) ($editableUser['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required></label>
         <?php if (!$editableUserIsTeacher): ?>
             <label>Classe<select name="class_id"><?php $renderClassOptions(isset($editableUser['class_id']) ? (int) $editableUser['class_id'] : null); ?></select></label>
+        <?php endif; ?>
+        <?php if ($editableUserIsStudent && isset($renderTeamOptions) && is_callable($renderTeamOptions)): ?>
+            <label>Equip / Grup<select name="team_id"><?php $renderTeamOptions($editableUserTeamId, $editableUserClassId, $editableUserClassCode); ?></select></label>
         <?php endif; ?>
     </div>
     <?php if ($editableUserIsTeacher): ?>

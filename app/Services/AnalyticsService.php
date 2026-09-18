@@ -186,6 +186,10 @@ class AnalyticsService
             return true;
         }
 
+        if (str_starts_with($path, '/user-avatar/')) {
+            return true;
+        }
+
         $userAgent = (string) ($server['HTTP_USER_AGENT'] ?? '');
 
         return preg_match('/bot|crawl|spider|slurp|curl|wget/i', $userAgent) === 1;

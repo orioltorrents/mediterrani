@@ -11,11 +11,11 @@ class AdminDashboardUserService
     public function users(): array
     {
         $stmt = $this->pdo->query(
-            'SELECT u.id, u.name, u.surname, u.email, u.is_active, u.created_at,
+            'SELECT u.id, u.name, u.surname, u.email, u.avatar_url, u.is_active, u.created_at,
                     COUNT(DISTINCT sv.id) AS visit_count
               FROM users u
               LEFT JOIN site_visits sv ON sv.user_id = u.id
-              GROUP BY u.id, u.name, u.surname, u.email, u.is_active, u.created_at
+              GROUP BY u.id, u.name, u.surname, u.email, u.avatar_url, u.is_active, u.created_at
               ORDER BY u.created_at DESC'
         );
 

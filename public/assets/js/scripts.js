@@ -108,14 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hash || hash === '#') return;
 
         const target = document.getElementById(hash.slice(1));
-        const collapsibleCard = target?.closest('.admin-collapsible, .collapsible-card');
-        if (!target || !collapsibleCard) return;
+        if (!target) return;
 
-        if (collapsibleCard.classList.contains('is-collapsed')) {
+        const collapsibleCards = Array.from(document.querySelectorAll('.admin-collapsible, .collapsible-card'))
+            .filter((card) => card.contains(target));
+
+        collapsibleCards.forEach((collapsibleCard) => {
             collapsibleCard.classList.remove('is-collapsed');
             const collapseBtn = collapsibleCard.querySelector('.collapse-toggle');
             if (collapseBtn) collapseBtn.textContent = 'Amagar';
-        }
+        });
 
         window.setTimeout(() => {
             target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -250,8 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             dataRows.sort((a, b) => {
-                const va = (a.children[idx]?.textContent || '').trim();
-                const vb = (b.children[idx]?.textContent || '').trim();
+                const va = (a.children[idx]?.getAttribute('data-sort-value') || a.children[idx]?.textContent || '').trim();
+                const vb = (b.children[idx]?.getAttribute('data-sort-value') || b.children[idx]?.textContent || '').trim();
 
                 if (sortType === 'number') {
                     const na = Number.parseFloat(va.replace(',', '.')) || 0;
@@ -597,4 +599,49 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+
+    // ── lightbox d'avatars d'alumnes ──
+    const lightbox = document.getElementById('avatar-lightbox');
+    const lightboxImg = document.getElementById('avatar-lightbox-img');
+    const lightboxCaption = document.getElementById('avatar-lightbox-caption');
+    const lightboxClose = document.getElementById('avatar-lightbox-close');
+    const lightboxOverlay = document.getElementById('avatar-lightbox-overlay');
+
+    if (lightbox && lightboxImg) {
+        const closeLightbox = () => {
+            lightbox.hidden = true;
+            lightboxImg.src = '';
+            lightboxCaption.textContent = '';
+            document.body.style.overflow = '';
+        };
+
+        document.querySelectorAll('.user-avatar-trigger').forEach((trigger) => {
+            trigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                const src = trigger.getAttribute('data-avatar-src') || '';
+                const name = trigger.getAttribute('data-avatar-name') || '';
+
+                if (src !== '') {
+                    lightboxImg.src = src;
+                    lightboxCaption.textContent = name;
+                    lightbox.hidden = false;
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+        });
+
+        if (lightboxClose) {
+            lightboxClose.addEventListener('click', closeLightbox);
+        }
+
+        if (lightboxOverlay) {
+            lightboxOverlay.addEventListener('click', closeLightbox);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !lightbox.hidden) {
+                closeLightbox();
+            }
+        });
+    }
 });

@@ -10,6 +10,11 @@ $projects = is_array($projects ?? null) ? $projects : [];
 $projectAssignments = is_array($projectAssignments ?? null) ? $projectAssignments : [];
 $analytics = is_array($analytics ?? null) ? $analytics : [];
 $classroomSummary = is_array($classroomSummary ?? null) ? $classroomSummary : [];
+$userAvatarPreview = is_array($userAvatarPreview ?? null) ? $userAvatarPreview : [];
+$avatarMatches = is_array($userAvatarPreview['matches'] ?? null) ? $userAvatarPreview['matches'] : [];
+$avatarAmbiguousFiles = is_array($userAvatarPreview['ambiguousFiles'] ?? null) ? $userAvatarPreview['ambiguousFiles'] : [];
+$avatarUnmatchedFiles = is_array($userAvatarPreview['unmatchedFiles'] ?? null) ? $userAvatarPreview['unmatchedFiles'] : [];
+$avatarUsersWithoutPhoto = is_array($userAvatarPreview['usersWithoutPhoto'] ?? null) ? $userAvatarPreview['usersWithoutPhoto'] : [];
 
 $projectNamesById = [];
 foreach ($projects as $project) {
@@ -36,19 +41,32 @@ $projectYearObjectivesMap = is_array($projectYearObjectivesMap ?? null) ? $proje
 $studentsWithTeams = is_array($studentsWithTeams ?? null) ? $studentsWithTeams : [];
 $availableTeams = is_array($availableTeams ?? null) ? $availableTeams : [];
 $teamsWithMembers = is_array($teamsWithMembers ?? null) ? $teamsWithMembers : [];
+$studentTeamLabels = [];
+$studentTeamIds = [];
+foreach ($studentsWithTeams as $studentTeam) {
+    $studentId = (int) ($studentTeam['user_id'] ?? 0);
+    $teamId = !empty($studentTeam['team_id']) ? (int) $studentTeam['team_id'] : null;
+    $teamName = trim((string) ($studentTeam['team_name'] ?? ''));
+    $teamCode = trim((string) ($studentTeam['team_code'] ?? ''));
+    $teamLabel = $teamName !== '' ? $teamName : $teamCode;
+    if ($studentId > 0 && $teamLabel !== '') {
+        $studentTeamLabels[$studentId][$teamLabel] = $teamLabel;
+    }
+    if ($studentId > 0 && $teamId !== null) {
+        $studentTeamIds[$studentId] = $teamId;
+    }
+}
 $teamsByClass = [];
-$teamsOf3Count = 0;
-$teamsOf4Count = 0;
+$teamSizeCounts = [];
 foreach ($teamsWithMembers as $team) {
     $classKey = (string) ($team['class_code'] ?? '');
     $teamsByClass[$classKey !== '' ? $classKey : 'Sense classe'][] = $team;
     $memberCount = count($team['members'] ?? []);
-    if ($memberCount === 3) {
-        $teamsOf3Count++;
-    } elseif ($memberCount === 4) {
-        $teamsOf4Count++;
+    if ($memberCount > 0) {
+        $teamSizeCounts[$memberCount] = ($teamSizeCounts[$memberCount] ?? 0) + 1;
     }
 }
+ksort($teamSizeCounts);
 
 $projectAcademicYearsByProject = [];
 foreach ($projectAcademicYears as $edition) {
@@ -102,21 +120,33 @@ $renderTeacherClassChoices = static function (array $selectedClassIds = []) use 
     }
 };
 
-$renderTeamOptions = static function (?int $selectedTeamId = null, string $studentClassCode = '') use ($availableTeams): void {
+$renderTeamOptions = static function (?int $selectedTeamId = null, ?int $studentClassId = null, string $studentClassCode = '') use ($availableTeams): void {
     ?>
     <option value="">(Sense grup assignat)</option>
     <?php foreach ($availableTeams as $team): ?>
         <?php
         $teamId = (int) ($team['id'] ?? 0);
+        $teamClassId = !empty($team['class_id']) ? (int) $team['class_id'] : null;
         $teamClassGroup = trim((string) ($team['class_group'] ?? ''));
-        if ($studentClassCode !== '' && $teamClassGroup !== '' && $teamClassGroup !== $studentClassCode) {
-            if ($selectedTeamId !== $teamId) {
-                continue;
-            }
+        $teamClassCode = trim((string) ($team['class_code'] ?? ''));
+        $matchesStudentClass = true;
+        if ($studentClassId !== null && $teamClassId !== null) {
+            $matchesStudentClass = $teamClassId === $studentClassId;
+        } elseif ($studentClassCode !== '' && ($teamClassCode !== '' || $teamClassGroup !== '')) {
+            $matchesStudentClass = $teamClassCode === $studentClassCode || $teamClassGroup === $studentClassCode;
         }
+
+        if (!$matchesStudentClass && $selectedTeamId !== $teamId) {
+            continue;
+        }
+        $teamLabel = trim((string) ($team['team_name'] ?? ''));
+        if ($teamLabel === '') {
+            $teamLabel = trim((string) ($team['team_code'] ?? ''));
+        }
+        $teamContext = trim((string) ($team['project_name'] ?? 'Projecte') . ' [' . (string) ($team['academic_year_name'] ?? '') . ']');
         ?>
-        <option value="<?= $teamId ?>" <?= $selectedTeamId === $teamId ? 'selected' : '' ?>>
-            <?= htmlspecialchars((string) ($team['project_name'] ?? 'Projecte') . ' [' . ($team['academic_year_name'] ?? '') . '] - ' . ($team['team_name'] ?? $team['team_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+        <option value="<?= $teamId ?>" title="<?= htmlspecialchars($teamContext, ENT_QUOTES, 'UTF-8') ?>" <?= $selectedTeamId === $teamId ? 'selected' : '' ?>>
+            <?= htmlspecialchars($teamLabel !== '' ? $teamLabel : 'Equip ' . $teamId, ENT_QUOTES, 'UTF-8') ?>
         </option>
     <?php endforeach;
 };
@@ -165,7 +195,19 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
         <nav class="admin-layout__nav">
             <a class="active" href="#resum">Resum</a>
             <a href="#visites">Visites</a>
-            <a href="#usuaris">Usuaris</a>
+            <div class="admin-layout__nav-group" data-nav-group>
+                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="usuaris-submenu" aria-expanded="false" aria-controls="usuaris-submenu">
+                    Usuaris
+                </button>
+                <div class="admin-layout__submenu" id="usuaris-submenu" hidden>
+                    <a href="#usuaris">Resum usuaris</a>
+                    <a href="#crear-usuari">Crear usuari</a>
+                    <a href="#importar-usuaris">Importar CSV</a>
+                    <a href="#fotos-usuaris">Fotos</a>
+                    <a href="#alumnes-seccio">Alumnes</a>
+                    <a href="#professors-seccio">Professors</a>
+                </div>
+            </div>
             <a href="#classes">Classes</a>
             <a href="#grups-alumnes">Grups</a>
             <a href="#classroom">Classroom</a>
@@ -499,6 +541,60 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                             </form>
                         </div>
                     </section>
+
+                    <section id="fotos-usuaris" class="card admin-subpanel admin-collapsible is-collapsed">
+                        <div class="admin-panel__header">
+                            <h3>Fotos d’usuaris</h3>
+                            <div class="admin-actions">
+                                <span class="status"><?= (int) ($userAvatarPreview['totalMatches'] ?? 0) ?> coincidències</span>
+                                <button class="collapse-toggle" type="button" data-collapse="fotos-usuaris-content">Mostrar</button>
+                            </div>
+                        </div>
+                        <div id="fotos-usuaris-content" class="admin-collapsible__content">
+                            <p class="muted admin-csv-import__help">Carpeta privada: <code>storage/uploads/<?= htmlspecialchars((string) ($userAvatarPreview['relativeDirectory'] ?? 'user-avatars/originals'), ENT_QUOTES, 'UTF-8') ?></code>. Formats acceptats: <code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>, <code>.webp</code>.</p>
+                            <div class="admin-avatar-summary">
+                                <span class="status"><?= (int) ($userAvatarPreview['totalFiles'] ?? 0) ?> fotos trobades</span>
+                                <span class="status"><?= count($avatarMatches) ?> coincidències segures</span>
+                                <span class="status"><?= (int) ($userAvatarPreview['totalUpdates'] ?? 0) ?> pendents de vincular</span>
+                                <span class="status"><?= count($avatarUnmatchedFiles) ?> sense coincidència</span>
+                                <span class="status"><?= count($avatarAmbiguousFiles) ?> ambigües</span>
+                            </div>
+                            <?php if ($avatarMatches !== []): ?>
+                                <form class="admin-form admin-form--inline" method="post" action="<?= url('admin') ?>">
+                                    <input type="hidden" name="action" value="sync_user_avatars">
+                                    <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                    <button class="button" type="submit">Vincular coincidències segures</button>
+                                </form>
+                                <div class="admin-table__wrapper">
+                                    <table class="admin-table admin-table--compact">
+                                        <thead><tr><th>Alumne</th><th>Fitxer</th><th>Estat</th></tr></thead>
+                                        <tbody>
+                                            <?php foreach (array_slice($avatarMatches, 0, 20) as $match): ?>
+                                                <?php $matchUser = $match['user'] ?? []; $matchFile = $match['file'] ?? []; ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars(trim((string) ($matchUser['name'] ?? '') . ' ' . (string) ($matchUser['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                                    <td><?= htmlspecialchars((string) ($matchFile['filename'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                                    <td><?= !empty($match['will_update']) ? 'Pendent de vincular' : 'Ja vinculada' ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <?php if (count($avatarMatches) > 20): ?><p class="muted">Es mostren les primeres 20 coincidències.</p><?php endif; ?>
+                            <?php else: ?>
+                                <p class="muted">No s’han trobat coincidències segures. Revisa que els fitxers segueixin el patró <code>Cognoms, Nom.jpeg</code>.</p>
+                            <?php endif; ?>
+                            <?php if ($avatarUnmatchedFiles !== []): ?>
+                                <details class="admin-details"><summary>Fotos sense coincidència (<?= count($avatarUnmatchedFiles) ?>)</summary><ul class="admin-compact-list"><?php foreach (array_slice($avatarUnmatchedFiles, 0, 40) as $file): ?><li><?= htmlspecialchars((string) ($file['filename'] ?? ''), ENT_QUOTES, 'UTF-8') ?></li><?php endforeach; ?></ul></details>
+                            <?php endif; ?>
+                            <?php if ($avatarAmbiguousFiles !== []): ?>
+                                <details class="admin-details"><summary>Fotos amb coincidència ambigua (<?= count($avatarAmbiguousFiles) ?>)</summary><ul class="admin-compact-list"><?php foreach (array_slice($avatarAmbiguousFiles, 0, 40) as $item): ?><li><?= htmlspecialchars((string) ($item['file']['filename'] ?? ''), ENT_QUOTES, 'UTF-8') ?></li><?php endforeach; ?></ul></details>
+                            <?php endif; ?>
+                            <?php if ($avatarUsersWithoutPhoto !== []): ?>
+                                <details class="admin-details"><summary>Alumnes sense foto vinculada ni fitxer detectat (<?= count($avatarUsersWithoutPhoto) ?>)</summary><ul class="admin-compact-list"><?php foreach (array_slice($avatarUsersWithoutPhoto, 0, 40) as $user): ?><li><?= htmlspecialchars(trim((string) ($user['surname'] ?? '') . ', ' . (string) ($user['name'] ?? '')), ENT_QUOTES, 'UTF-8') ?></li><?php endforeach; ?></ul></details>
+                            <?php endif; ?>
+                        </div>
+                    </section>
                 </div>
 
                 <section id="alumnes-seccio" class="card admin-subpanel admin-collapsible">
@@ -517,14 +613,16 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                         </div>
                         <div class="admin-table__wrapper">
                             <table id="students-table" class="admin-table admin-table--compact" data-sortable-table>
-                                <thead><tr><th data-sort-type="text">Nom</th><th>Email</th><th>Classe</th><th>Visites</th><th>Estat</th><th>Accions</th></tr></thead>
+                                <thead><tr><th data-sort-type="text">Nom</th><th>Foto</th><th data-sort-type="text">Email</th><th data-sort-type="text">Classe</th><th data-sort-type="text">Equip</th><th data-sort-type="number">Visites</th><th data-sort-type="text">Estat</th><th>Accions</th></tr></thead>
                                 <tbody>
                                     <?php foreach ($studentUsers as $user): ?>
-                                        <?php $userId = (int) ($user['id'] ?? 0); $classCode = (string) ($user['class_code'] ?? ''); ?>
+                                        <?php $userId = (int) ($user['id'] ?? 0); $classCode = (string) ($user['class_code'] ?? ''); $userTeamLabels = array_values($studentTeamLabels[$userId] ?? []); ?>
                                         <tr data-user-row data-class="<?= htmlspecialchars($classCode, ENT_QUOTES, 'UTF-8') ?>" data-status="<?= ((int) ($user['is_active'] ?? 0) === 1) ? 'active' : 'inactive' ?>" data-search="<?= htmlspecialchars(strtolower(trim((string) ($user['name'] ?? '') . ' ' . (string) ($user['surname'] ?? '') . ' ' . (string) ($user['email'] ?? ''))), ENT_QUOTES, 'UTF-8') ?>">
                                             <td><?= htmlspecialchars(trim((string) ($user['name'] ?? '') . ' ' . (string) ($user['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                             <td><?php if (trim((string) ($user['avatar_url'] ?? '')) !== ''): ?><button type="button" class="user-avatar-trigger" data-avatar-src="<?= url('user-avatar/' . $userId) ?>" data-avatar-name="<?= htmlspecialchars(trim((string) ($user['name'] ?? '') . ' ' . (string) ($user['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?>" title="Fes clic per ampliar"><img class="user-avatar" src="<?= url('user-avatar/' . $userId) ?>" alt="Foto de <?= htmlspecialchars((string) ($user['name'] ?? 'alumne'), ENT_QUOTES, 'UTF-8') ?>"></button><?php else: ?><span class="user-avatar user-avatar--placeholder" aria-label="Sense foto">?</span><?php endif; ?></td>
                                             <td><?= htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                                             <td><?= htmlspecialchars($classCode !== '' ? $classCode : 'Sense classe', ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= htmlspecialchars($userTeamLabels !== [] ? implode(', ', $userTeamLabels) : 'Sense equip', ENT_QUOTES, 'UTF-8') ?></td>
                                             <td><?= (int) ($user['visit_count'] ?? 0) ?></td>
                                             <td><?= ((int) ($user['is_active'] ?? 0) === 1) ? 'Actiu' : 'Inactiu' ?></td>
                                             <td>
@@ -538,7 +636,7 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                                 </div>
                                             </td>
                                         </tr>
-                                        <tr id="student-editor-<?= $userId ?>" class="student-editor-row"><td colspan="6"><?php $editableUser = $user; include __DIR__ . '/partials/user-editor-form.php'; ?></td></tr>
+                                        <tr id="student-editor-<?= $userId ?>" class="student-editor-row"><td colspan="8"><?php $editableUser = $user; include __DIR__ . '/partials/user-editor-form.php'; ?></td></tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -584,7 +682,7 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
         <section id="grups-alumnes" class="card admin-panel admin-collapsible is-collapsed">
             <div class="admin-panel__header">
                 <h2>Equips</h2>
-                <div class="admin-actions"><span class="status"><?= count($teamsWithMembers) ?> equips</span><span class="status">3 membres: <?= $teamsOf3Count ?></span><span class="status">4 membres: <?= $teamsOf4Count ?></span><button class="collapse-toggle" type="button" data-collapse="grups-alumnes-content">Mostrar</button></div>
+                <div class="admin-actions"><span class="status"><?= count($teamsWithMembers) ?> equips</span><?php foreach ($teamSizeCounts as $memberCount => $teamCount): ?><span class="status"><?= (int) $teamCount ?> <?= ((int) $teamCount === 1) ? 'equip' : 'equips' ?> de <?= (int) $memberCount ?></span><?php endforeach; ?><button class="collapse-toggle" type="button" data-collapse="grups-alumnes-content">Mostrar</button></div>
             </div>
             <div id="grups-alumnes-content" class="admin-collapsible__content">
                 <p class="muted">Equips de projecte amb els seus membres agrupats.</p>
@@ -592,23 +690,68 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                     <div class="admin-team-classes">
                         <?php foreach ($teamsByClass as $classCode => $classTeams): ?>
                             <?php $classKey = 'teams-class-' . substr(md5($classCode), 0, 8); ?>
-                            <?php $classTeamsOf3 = count(array_filter($classTeams, static fn (array $team): bool => count($team['members'] ?? []) === 3)); ?>
-                            <?php $classTeamsOf4 = count(array_filter($classTeams, static fn (array $team): bool => count($team['members'] ?? []) === 4)); ?>
+                            <?php $classTeamSizeCounts = []; foreach ($classTeams as $classTeam) { $classMemberCount = count($classTeam['members'] ?? []); if ($classMemberCount > 0) { $classTeamSizeCounts[$classMemberCount] = ($classTeamSizeCounts[$classMemberCount] ?? 0) + 1; } } ksort($classTeamSizeCounts); ?>
                             <section class="admin-team-class admin-collapsible is-collapsed">
-                                <div class="admin-team-class__header"><h3><?= htmlspecialchars($classCode, ENT_QUOTES, 'UTF-8') ?></h3><div class="admin-actions"><span class="status"><?= count($classTeams) ?> equips</span><span class="status">3 membres: <?= $classTeamsOf3 ?></span><span class="status">4 membres: <?= $classTeamsOf4 ?></span><button class="collapse-toggle" type="button" data-collapse="<?= $classKey ?>">Mostrar</button></div></div>
+                                <div class="admin-team-class__header"><h3><?= htmlspecialchars($classCode, ENT_QUOTES, 'UTF-8') ?></h3><div class="admin-actions"><span class="status"><?= count($classTeams) ?> equips</span><?php foreach ($classTeamSizeCounts as $memberCount => $teamCount): ?><span class="status"><?= (int) $teamCount ?> <?= ((int) $teamCount === 1) ? 'equip' : 'equips' ?> de <?= (int) $memberCount ?></span><?php endforeach; ?><button class="collapse-toggle" type="button" data-collapse="<?= $classKey ?>">Mostrar</button></div></div>
                                 <div id="<?= $classKey ?>" class="admin-collapsible__content"><div class="admin-teams-grid">
                                     <?php foreach ($classTeams as $team): ?>
                                         <article class="admin-team-card">
                                             <div class="admin-team-card__header"><div><h3><?= htmlspecialchars((string) ($team['team_name'] ?: $team['team_code']), ENT_QUOTES, 'UTF-8') ?></h3><p><?= htmlspecialchars((string) $team['team_code'], ENT_QUOTES, 'UTF-8') ?></p></div><span class="status" aria-label="Membres de l'equip"><?= count($team['members'] ?? []) ?></span></div>
                                             <p class="admin-team-card__context"><?= htmlspecialchars((string) $team['project_name'], ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($team['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
-                                            <?php if (($team['members'] ?? []) !== []): ?><ul class="admin-team-members"><?php foreach ($team['members'] as $member): ?><li class="admin-team-member"><strong><?= htmlspecialchars((string) $member['name'], ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars((string) $member['email'], ENT_QUOTES, 'UTF-8') ?></small><form class="inline-form" method="post" action="<?= url('admin/impersonate-student') ?>"><input type="hidden" name="csrf_token" value="<?= $csrfToken ?>"><input type="hidden" name="student_id" value="<?= (int) $member['id'] ?>"><button class="button button--small button--secondary" type="submit">Veure com alumne</button></form></li><?php endforeach; ?></ul><?php else: ?><p class="muted">Sense membres assignats.</p><?php endif; ?>
+                                            <?php if (($team['members'] ?? []) !== []): ?>
+                                                <ul class="admin-team-members">
+                                                    <?php foreach ($team['members'] as $member): ?>
+                                                        <?php
+                                                        $memberId = (int) ($member['id'] ?? 0);
+                                                        $memberName = (string) ($member['name'] ?? '');
+                                                        $teamClassId = !empty($team['class_id']) ? (int) $team['class_id'] : null;
+                                                        $teamClassCode = (string) ($team['class_code'] ?? '');
+                                                        $currentTeamId = (int) ($team['id'] ?? 0);
+                                                        ?>
+                                                        <li class="admin-team-member">
+                                                            <div class="admin-team-member__identity">
+                                                                <?php if (trim((string) ($member['avatar_url'] ?? '')) !== ''): ?>
+                                                                    <button type="button" class="user-avatar-trigger" data-avatar-src="<?= url('user-avatar/' . $memberId) ?>" data-avatar-name="<?= htmlspecialchars($memberName, ENT_QUOTES, 'UTF-8') ?>" title="Fes clic per ampliar"><img class="user-avatar" src="<?= url('user-avatar/' . $memberId) ?>" alt="Foto de <?= htmlspecialchars($memberName !== '' ? $memberName : 'alumne', ENT_QUOTES, 'UTF-8') ?>"></button>
+                                                                <?php else: ?>
+                                                                    <span class="user-avatar user-avatar--placeholder" aria-label="Sense foto">?</span>
+                                                                <?php endif; ?>
+                                                                <div class="admin-team-member__text"><strong><?= htmlspecialchars($memberName, ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars((string) $member['email'], ENT_QUOTES, 'UTF-8') ?></small></div>
+                                                            </div>
+                                                            <div class="admin-team-member__actions">
+                                                                <form class="inline-form admin-team-change-form" method="post" action="<?= url('admin') ?>">
+                                                                    <input type="hidden" name="action" value="update_student_team">
+                                                                    <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                                                    <input type="hidden" name="user_id" value="<?= $memberId ?>">
+                                                                    <select name="team_id" aria-label="Canviar grup de <?= htmlspecialchars($memberName, ENT_QUOTES, 'UTF-8') ?>">
+                                                                        <?php $renderTeamOptions($currentTeamId, $teamClassId, $teamClassCode); ?>
+                                                                    </select>
+                                                                    <button class="button button--small" type="submit">Canviar grup</button>
+                                                                </form>
+                                                                <form class="inline-form" method="post" action="<?= url('admin/impersonate-student') ?>"><input type="hidden" name="csrf_token" value="<?= $csrfToken ?>"><input type="hidden" name="student_id" value="<?= $memberId ?>"><button class="button button--small button--secondary" type="submit">Veure com alumne</button></form>
+                                                            </div>
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            <?php else: ?>
+                                                <p class="muted">Sense membres assignats.</p>
+                                            <?php endif; ?>
                                         </article>
                                     <?php endforeach; ?>
                                 </div></div>
                             </section>
                         <?php endforeach; ?>
                     </div>
-                <?php elseif ($studentsWithTeams !== []): ?>
+                <?php else: ?>
+                    <p class="muted">Encara no hi ha cap equip creat.</p>
+                <?php endif; ?>
+
+                <?php if ($studentsWithTeams !== []): ?>
+                    <section class="card admin-subpanel admin-collapsible is-collapsed">
+                        <div class="admin-panel__header">
+                            <h3>Canviar equip d’alumnes</h3>
+                            <div class="admin-actions"><span id="students-teams-count" class="status"><?= count($studentsWithTeams) ?> alumnes</span><button class="collapse-toggle" type="button" data-collapse="students-teams-content">Mostrar</button></div>
+                        </div>
+                        <div id="students-teams-content" class="admin-collapsible__content">
                     <div class="admin-filters" data-user-filter="students-teams-table" data-count-target="students-teams-count" data-count-label="alumnes">
                         <label>Cerca<input type="search" data-user-search placeholder="Nom o email"></label>
                         <button class="admin-filters__chip is-active" type="button" data-value="all">Totes</button>
@@ -620,6 +763,7 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                         <table id="students-teams-table" class="admin-table admin-table--compact" data-sortable-table>
                             <thead>
                                 <tr>
+                                    <th>Foto</th>
                                     <th data-sort-type="text">Alumne/a</th>
                                     <th>Email</th>
                                     <th>Classe</th>
@@ -631,14 +775,16 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                 <?php foreach ($studentsWithTeams as $st): ?>
                                     <?php
                                     $stUserId = (int) ($st['user_id'] ?? 0);
+                                    $stClassId = !empty($st['class_id']) ? (int) $st['class_id'] : null;
                                     $stClassCode = (string) ($st['class_code'] ?? '');
                                     $stTeamCode = (string) ($st['team_code'] ?? '');
                                     $stTeamName = (string) ($st['team_name'] ?? '');
                                     $stTeamId = !empty($st['team_id']) ? (int) $st['team_id'] : null;
                                     $currentTeamLabel = $stTeamName !== '' ? $stTeamName : ($stTeamCode !== '' ? $stTeamCode : 'Sense grup');
                                     ?>
-                                    <tr data-user-row data-class="<?= htmlspecialchars($stClassCode, ENT_QUOTES, 'UTF-8') ?>" data-status="active" data-search="<?= htmlspecialchars(strtolower(trim((string) ($st['name'] ?? '') . ' ' . (string) ($st['surname'] ?? '') . ' ' . (string) ($st['email'] ?? ''))), ENT_QUOTES, 'UTF-8') ?>">
-                                        <td><?= htmlspecialchars(trim((string) ($st['name'] ?? '') . ' ' . (string) ($st['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                     <tr data-user-row data-class="<?= htmlspecialchars($stClassCode, ENT_QUOTES, 'UTF-8') ?>" data-status="active" data-search="<?= htmlspecialchars(strtolower(trim((string) ($st['name'] ?? '') . ' ' . (string) ($st['surname'] ?? '') . ' ' . (string) ($st['email'] ?? ''))), ENT_QUOTES, 'UTF-8') ?>">
+                                         <td><?php if (trim((string) ($st['avatar_url'] ?? '')) !== ''): ?><button type="button" class="user-avatar-trigger" data-avatar-src="<?= url('user-avatar/' . $stUserId) ?>" data-avatar-name="<?= htmlspecialchars(trim((string) ($st['name'] ?? '') . ' ' . (string) ($st['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?>" title="Fes clic per ampliar"><img class="user-avatar" src="<?= url('user-avatar/' . $stUserId) ?>" alt="Foto de <?= htmlspecialchars((string) ($st['name'] ?? 'alumne'), ENT_QUOTES, 'UTF-8') ?>"></button><?php else: ?><span class="user-avatar user-avatar--placeholder" aria-label="Sense foto">?</span><?php endif; ?></td>
+                                         <td><?= htmlspecialchars(trim((string) ($st['name'] ?? '') . ' ' . (string) ($st['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><?= htmlspecialchars((string) ($st['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><?= htmlspecialchars($stClassCode !== '' ? $stClassCode : 'Sense classe', ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><span class="pill"><?= htmlspecialchars($currentTeamLabel, ENT_QUOTES, 'UTF-8') ?></span></td>
@@ -648,7 +794,7 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                                                 <input type="hidden" name="user_id" value="<?= $stUserId ?>">
                                                 <select name="team_id" style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: .35rem .5rem; font: inherit;">
-                                                    <?php $renderTeamOptions($stTeamId, $stClassCode); ?>
+                                                    <?php $renderTeamOptions($stTeamId, $stClassId, $stClassCode); ?>
                                                 </select>
                                                 <button class="button button--small" type="submit">Desar</button>
                                             </form>
@@ -658,6 +804,8 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                             </tbody>
                         </table>
                     </div>
+                        </div>
+                    </section>
                 <?php else: ?>
                     <p class="muted">No hi ha cap alumne registrat al sistema.</p>
                 <?php endif; ?>
@@ -667,20 +815,58 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
         <section id="classroom" class="card admin-panel admin-collapsible is-collapsed">
             <div class="admin-panel__header"><h2>Classroom</h2><div class="admin-actions"><span class="status"><?= (int) ($classroomSummary['total'] ?? count($classrooms)) ?> classrooms</span><button class="collapse-toggle" type="button" data-collapse="classroom-content">Mostrar</button></div></div>
             <div id="classroom-content" class="admin-collapsible__content">
-                <section class="card admin-subpanel">
-                    <h3>Importar Classrooms</h3>
-                    <p class="muted admin-csv-import__help">Headers obligatoris: <code>project_academic_years.id,classrooms.classroom_key,classrooms.classroom_name</code>. També pots afegir <code>classrooms.classroom_url,classrooms.google_classroom_id</code>.</p>
-                    <p class="muted admin-csv-import__help">L’edició del projecte és obligatòria perquè cada Classroom quedi vinculat al projecte i curs correctes.</p>
-                    <pre class="admin-csv-import__example"><code>project_academic_years.id,classrooms.classroom_key,classrooms.classroom_name,classrooms.classroom_url,classrooms.google_classroom_id
+                <section class="card admin-subpanel admin-collapsible is-collapsed">
+                    <div class="admin-panel__header"><h3>Classrooms</h3><div class="admin-actions"><span class="status"><?= (int) ($classroomSummary['total'] ?? count($classrooms)) ?> classrooms</span><button class="collapse-toggle" type="button" data-collapse="classrooms-content">Mostrar</button></div></div>
+                    <div id="classrooms-content" class="admin-collapsible__content">
+                    <section class="admin-subpanel admin-collapsible is-collapsed">
+                        <div class="admin-panel__header"><h4>Importar Classrooms</h4><button class="collapse-toggle" type="button" data-collapse="import-classrooms-content">Mostrar</button></div>
+                        <div id="import-classrooms-content" class="admin-collapsible__content">
+                            <p class="muted admin-csv-import__help">Headers obligatoris: <code>project_academic_years.id,classrooms.classroom_key,classrooms.classroom_name</code>. També pots afegir <code>classrooms.classroom_url,classrooms.google_classroom_id</code>.</p>
+                            <p class="muted admin-csv-import__help">L’edició del projecte és obligatòria perquè cada Classroom quedi vinculat al projecte i curs correctes.</p>
+                            <pre class="admin-csv-import__example"><code>project_academic_years.id,classrooms.classroom_key,classrooms.classroom_name,classrooms.classroom_url,classrooms.google_classroom_id
 4,1ESOA-MEDITERRANI,Mediterrani 1ESO A,https://classroom.google.com/c/123456,123456</code></pre>
-                    <form class="admin-form" method="post" action="<?= url('admin') ?>" enctype="multipart/form-data">
-                        <input type="hidden" name="action" value="import_classrooms">
-                        <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
-                        <label>Fitxer CSV<input type="file" name="classrooms_file" accept=".csv,text/csv" required></label>
-                        <button class="button" type="submit">Importar Classrooms</button>
-                    </form>
+                            <form class="admin-form" method="post" action="<?= url('admin') ?>" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="import_classrooms">
+                                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                <label>Fitxer CSV<input type="file" name="classrooms_file" accept=".csv,text/csv" required></label>
+                                <button class="button" type="submit">Importar Classrooms</button>
+                            </form>
+                        </div>
+                    </section>
+                    <section class="admin-subpanel admin-collapsible is-collapsed">
+                        <div class="admin-panel__header"><h4>Llista actual de Classrooms</h4><button class="collapse-toggle" type="button" data-collapse="classrooms-list-content">Mostrar</button></div>
+                        <div id="classrooms-list-content" class="admin-collapsible__content">
+                            <?php if ($classrooms !== []): ?><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Nom</th><th>Clau</th><th>Curs</th><th>Membres</th><th>Estat</th></tr></thead><tbody><?php foreach ($classrooms as $classroom): ?><tr><td><?= htmlspecialchars((string) ($classroom['classroom_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['classroom_key'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= (int) ($classroom['member_count'] ?? 0) ?></td><td><?= ((int) ($classroom['is_active'] ?? 0) === 1) ? 'Actiu' : 'Inactiu' ?></td></tr><?php endforeach; ?></tbody></table></div><?php else: ?><p class="muted">Encara no hi ha cap Classroom carregat.</p><?php endif; ?>
+                        </div>
+                    </section>
+                    </div>
                 </section>
-                <?php if ($classrooms !== []): ?><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Nom</th><th>Clau</th><th>Curs</th><th>Estat</th></tr></thead><tbody><?php foreach ($classrooms as $classroom): ?><tr><td><?= htmlspecialchars((string) ($classroom['classroom_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['classroom_key'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($classroom['academic_year_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= ((int) ($classroom['is_active'] ?? 0) === 1) ? 'Actiu' : 'Inactiu' ?></td></tr><?php endforeach; ?></tbody></table></div><?php else: ?><p class="muted">Encara no hi ha cap Classroom carregat.</p><?php endif; ?>
+                <section class="card admin-subpanel admin-collapsible is-collapsed">
+                    <div class="admin-panel__header"><h3>Membres dels Classrooms</h3><div class="admin-actions"><span class="status"><?= (int) ($classroomSummary['members'] ?? 0) ?> membres actius</span><button class="collapse-toggle" type="button" data-collapse="classroom-members-content">Mostrar</button></div></div>
+                    <div id="classroom-members-content" class="admin-collapsible__content">
+                        <section class="admin-subpanel admin-collapsible is-collapsed">
+                            <div class="admin-panel__header"><h4>Importar membres</h4><button class="collapse-toggle" type="button" data-collapse="import-classroom-members-content">Mostrar</button></div>
+                            <div id="import-classroom-members-content" class="admin-collapsible__content">
+                                <p class="muted admin-csv-import__help">Headers obligatoris: <code>academic_year,classroom_key,email</code>. Opcionals: <code>project_slug,classroom_name,classroom_url,google_classroom_id,name,surname,google_user_id,google_photo_url</code>.</p>
+                                <pre class="admin-csv-import__example"><code>academic_year,classroom_key,email,name,surname,google_user_id
+2025-2026,1ESOA-MEDITERRANI,alumne@example.com,Aiman,Garcia,google-user-id</code></pre>
+                                <form class="admin-form" method="post" action="<?= url('admin') ?>" enctype="multipart/form-data">
+                                    <input type="hidden" name="action" value="import_classroom_members">
+                                    <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                    <label>Fitxer CSV<input type="file" name="classroom_members_file" accept=".csv,text/csv" required></label>
+                                    <button class="button" type="submit">Importar membres</button>
+                                </form>
+                                <p class="muted">Els usuaris han d’existir prèviament a <code>users</code>. La importació actualitza les relacions i evita duplicats.</p>
+                            </div>
+                        </section>
+                        <section class="admin-subpanel admin-collapsible is-collapsed">
+                            <div class="admin-panel__header"><h4>Alumnes dels Classrooms</h4><button class="collapse-toggle" type="button" data-collapse="classroom-students-content">Mostrar</button></div>
+                            <div id="classroom-students-content" class="admin-collapsible__content">
+                                <?php if ($classroomMembers !== []): ?><div class="admin-table__wrapper"><table class="admin-table admin-table--compact"><thead><tr><th>Classroom</th><th>Alumne</th><th>Email</th><th>Google ID</th><th>Estat</th></tr></thead><tbody><?php foreach ($classroomMembers as $member): ?><tr><td><?= htmlspecialchars((string) ($member['classroom_name'] ?? $member['classroom_key'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars(trim((string) ($member['name'] ?? '') . ' ' . (string) ($member['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?: 'Sense nom' ?></td><td><?= htmlspecialchars((string) ($member['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($member['google_user_id'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= ((int) ($member['is_active'] ?? 0) === 1) ? 'Actiu' : 'Inactiu' ?></td></tr><?php endforeach; ?></tbody></table></div><?php else: ?><p class="muted">Encara no hi ha alumnes importats als Classrooms.</p><?php endif; ?>
+                            </div>
+                        </section>
+                    </div>
+                </section>
             </div>
         </section>
 
@@ -1023,6 +1209,16 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
         </section>
     </div>
 </div>
+
+<div class="avatar-lightbox" id="avatar-lightbox" hidden>
+    <div class="avatar-lightbox__overlay" id="avatar-lightbox-overlay"></div>
+    <div class="avatar-lightbox__content">
+        <button type="button" class="avatar-lightbox__close" id="avatar-lightbox-close" aria-label="Tancar">&times;</button>
+        <img class="avatar-lightbox__image" id="avatar-lightbox-img" src="" alt="">
+        <p class="avatar-lightbox__caption" id="avatar-lightbox-caption"></p>
+    </div>
+</div>
+
 <?php
 $content = ob_get_clean();
 include dirname(__DIR__) . '/layouts/app.php';

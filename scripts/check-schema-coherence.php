@@ -163,7 +163,7 @@ $editionScopedTables = [
         'indexes' => [['classroom_id', 'is_active'], ['project_academic_year_id']],
     ],
     'classroom_members' => [
-        'requiredColumns' => ['classroom_id', 'user_id', 'student_email'],
+        'requiredColumns' => ['classroom_id', 'user_id'],
         'fks' => [[
             'column' => 'classroom_id',
             'referencedTable' => 'classrooms',
@@ -174,7 +174,7 @@ $editionScopedTables = [
             'referencedColumn' => 'id',
         ]],
         'uniqueIndexes' => [['classroom_id', 'user_id']],
-        'indexes' => [['classroom_id', 'is_active'], ['user_id'], ['student_email'], ['google_user_id']],
+        'indexes' => [['classroom_id', 'is_active'], ['user_id'], ['google_user_id']],
     ],
     'assessment_task_classroom_links' => [
         'requiredColumns' => ['project_academic_year_phase_task_id', 'classroom_id', 'task_url', 'google_course_work_id', 'google_rubric_id'],

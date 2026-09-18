@@ -110,12 +110,11 @@ class ClassroomMemberImportService
         $membershipExists = $this->lookupService->classroomMembershipExists((int) $classroom['id'], (int) $user['id']);
         $stmt = $this->pdo->prepare(
             'INSERT INTO classroom_members
-                (classroom_id, user_id, student_email, google_user_id, google_photo_url, classroom_group, external_group_id, is_active)
+                (classroom_id, user_id, google_user_id, google_photo_url, classroom_group, external_group_id, is_active)
              VALUES
-                (:classroom_id, :user_id, :student_email, :google_user_id, :google_photo_url, NULL, NULL, 1)
+                (:classroom_id, :user_id, :google_user_id, :google_photo_url, NULL, NULL, 1)
              ON DUPLICATE KEY UPDATE
-                student_email = VALUES(student_email),
-                google_user_id = VALUES(google_user_id),
+                 google_user_id = VALUES(google_user_id),
                 google_photo_url = VALUES(google_photo_url),
                 classroom_group = NULL,
                 external_group_id = NULL,
@@ -125,7 +124,6 @@ class ClassroomMemberImportService
         $stmt->execute([
             'classroom_id' => (int) $classroom['id'],
             'user_id' => (int) $user['id'],
-            'student_email' => $email,
             'google_user_id' => $googleUserId !== '' ? $googleUserId : null,
             'google_photo_url' => $googlePhotoUrl !== '' ? $googlePhotoUrl : null,
         ]);

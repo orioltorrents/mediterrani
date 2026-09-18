@@ -23,6 +23,7 @@ class AdminDashboardService
         $projectAssignments = $this->projectService->projectAssignments();
         $classrooms = $this->classroomService->classrooms();
         $classroomSummary = $this->classroomService->classroomSummary();
+        $classroomMembers = $this->classroomService->classroomMembers();
         $roles = $this->roles();
         $classes = $this->classes();
         $academicYears = $this->academicYears();
@@ -36,6 +37,7 @@ class AdminDashboardService
         $availableTeams = $teamService->availableTeams();
         $teamsWithMembers = $teamService->teamsWithMembers();
         $evidenceSummary = (new AdminEvidenceService($this->pdo))->summary();
+        $userAvatarPreview = (new UserAvatarService($this->pdo))->preview();
 
         $roleMap = [];
         foreach ($userRoles as $row) {
@@ -166,6 +168,7 @@ class AdminDashboardService
             'sitePages' => [],
             'classrooms' => $classrooms,
             'classroomSummary' => $classroomSummary,
+            'classroomMembers' => $classroomMembers,
             'assessmentSummary' => [],
             'projectRoles' => [],
             'projectMembersWithoutRole' => 0,
@@ -180,6 +183,7 @@ class AdminDashboardService
             'availableTeams' => $availableTeams,
             'teamsWithMembers' => $teamsWithMembers,
             'evidenceSummary' => $evidenceSummary,
+            'userAvatarPreview' => $userAvatarPreview,
             'geoMapPoints' => $this->userService->buildGeoMapPoints($analytics['geo_stats'] ?? []),
         ];
     }

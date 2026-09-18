@@ -125,6 +125,8 @@ class AdminUserService
         $roles = $input['roles'] ?? [];
         $roleIds = is_array($roles) ? array_map('intval', $roles) : [];
         $teacherClassIds = $this->inputClassIds($input['teacher_class_ids'] ?? []);
+        $teamId = filter_var($input['team_id'] ?? null, FILTER_VALIDATE_INT);
+        $resolvedTeamId = $teamId === null || $teamId === false || $teamId <= 0 ? null : (int) $teamId;
 
         $this->pdo->beginTransaction();
 
@@ -155,12 +157,24 @@ class AdminUserService
                 $this->roleIdsContainRoleName($roleIds, 'teacher') ? $teacherClassIds : []
             );
 
+            if (array_key_exists('team_id', $input)) {
+                $this->syncStudentTeamAssignment(
+                    (int) $userId,
+                    $this->roleIdsContainRoleName($roleIds, 'student') ? $resolvedTeamId : null,
+                    $resolvedClassId
+                );
+            }
+
             $this->pdo->commit();
 
             return $this->message('Informació d’usuari actualitzada.', 'success');
-        } catch (Throwable) {
+        } catch (Throwable $throwable) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
+            }
+
+            if ($throwable instanceof RuntimeException && $throwable->getMessage() !== '') {
+                return $this->message($throwable->getMessage(), 'error');
             }
 
             return $this->message('No s’ha pogut actualitzar l’usuari.', 'error');
@@ -275,6 +289,64 @@ class AdminUserService
         foreach ($roleIds as $roleId) {
             $insertStmt->execute(['user_id' => $userId, 'role_id' => $roleId]);
         }
+    }
+
+    private function syncStudentTeamAssignment(int $userId, ?int $teamId, ?int $classId): void
+    {
+        $deleteStmt = $this->pdo->prepare('DELETE FROM project_team_members WHERE user_id = :user_id');
+        $deleteStmt->execute(['user_id' => $userId]);
+
+        if ($teamId === null) {
+            return;
+        }
+
+        if ($classId === null) {
+            throw new RuntimeException('Cal assignar una classe abans de seleccionar un equip.');
+        }
+
+        if (!$this->teamBelongsToClass($teamId, $classId)) {
+            throw new RuntimeException('Aquest equip no pertany a la classe de l’alumne.');
+        }
+
+        $insertStmt = $this->pdo->prepare(
+            'INSERT INTO project_team_members (project_team_id, user_id, class_id, created_at)
+             VALUES (:team_id, :user_id, :class_id, NOW())'
+        );
+        $insertStmt->execute([
+            'team_id' => $teamId,
+            'user_id' => $userId,
+            'class_id' => $classId,
+        ]);
+    }
+
+    private function teamBelongsToClass(int $teamId, int $classId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT pt.class_id, pt.class_group, c.class_code
+               FROM project_teams pt
+               LEFT JOIN classes c ON c.id = :class_id
+              WHERE pt.id = :team_id
+              LIMIT 1'
+        );
+        $stmt->execute([
+            'class_id' => $classId,
+            'team_id' => $teamId,
+        ]);
+        $team = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($team === false) {
+            return false;
+        }
+
+        $teamClassId = !empty($team['class_id']) ? (int) $team['class_id'] : null;
+        if ($teamClassId !== null) {
+            return $teamClassId === $classId;
+        }
+
+        $teamClassGroup = trim((string) ($team['class_group'] ?? ''));
+        $classCode = trim((string) ($team['class_code'] ?? ''));
+
+        return $teamClassGroup !== '' && $classCode !== '' && $teamClassGroup === $classCode;
     }
 
     private function roleIdsContainRoleName(array $roleIds, string $roleName): bool
