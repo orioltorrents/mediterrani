@@ -275,6 +275,34 @@ Les vistes no haurien de contenir SQL.
 
 Les vistes han de mostrar dades ja preparades pel controlador.
 
+### Vistes compostes i partials
+
+Quan una vista de dashboard creix, cal mantenir el fitxer principal com a punt de composició:
+
+- el controlador i els serveis preparen les dades, permisos i tokens CSRF;
+- la vista principal normalitza el context compartit i inclou els blocs de pantalla;
+- cada bloc visual independent viu a `resources/views/<àrea>/partials/`;
+- els partials poden compartir les variables del context de la vista, però no han de contenir SQL, autenticació ni lògica de negoci;
+- els comentaris PHPDoc dels partials documenten aquest context compartit i eviten falsos avisos de variables indefinides a l'editor.
+
+Exemple actual del dashboard d'administració:
+
+```text
+resources/views/admin/
+├── dashboard.php
+└── partials/
+	├── resum.php
+	├── visites.php
+	├── usuaris.php
+	├── classes.php
+	├── classroom.php
+	├── projectes.php
+	├── objectius.php
+	└── indicadors.php
+```
+
+La càrrega dinàmica amb Fetch és una evolució posterior. Primer cal conservar el renderitzat PHP complet com a fallback funcional; després es poden afegir endpoints que retornin partials concrets sense duplicar la lògica de dades ni els controls de seguretat.
+
 ---
 
 ## Layout

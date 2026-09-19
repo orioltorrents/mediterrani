@@ -1,4 +1,11 @@
 <?php
+/** @var mixed $editableUser */
+/** @var mixed $csrfToken */
+/** @var mixed $studentTeamIds */
+/** @var mixed $renderClassOptions */
+/** @var mixed $renderTeamOptions */
+/** @var mixed $renderTeacherClassChoices */
+/** @var mixed $renderRoleChoices */
 $editableUser = is_array($editableUser ?? null) ? $editableUser : [];
 $editableUserId = (int) ($editableUser['id'] ?? 0);
 $editableUserRoles = is_array($editableUser['roles'] ?? null) ? $editableUser['roles'] : [];
