@@ -11,10 +11,10 @@ La plataforma inclou i amplia progressivament:
 - espai de professorat;
 - panell d’administració;
 - gestió d’usuaris, rols, classes i projectes;
-- preparació i importació manual de continguts per a una futura sincronització real amb Google Docs i Google Sheets;
-- importació i consulta bàsica de notes, amb el sistema complet de rúbriques encara pendent.
+- preparació d'una futura importació d'evidències des de Google Sheets;
+- objectius d'aprenentatge, indicadors d'assoliment i un catàleg inicial d'evidències.
 
-El projecte ja disposa d'una aplicació modular funcional. Té rutes públiques i privades, autenticació bàsica, dashboards per perfil, projectes provinents de la base de dades, documents, seccions, equips, assets i una capa inicial d'avaluació i Google Workspace.
+El projecte ja disposa d'una aplicació modular funcional. Té rutes públiques i privades, autenticació bàsica, dashboards per perfil, projectes provinents de la base de dades, seccions, equips, objectius d'aprenentatge, indicadors d'assoliment i un catàleg inicial d'evidències.
 
 ## Estat actual
 
@@ -22,20 +22,22 @@ El projecte ja disposa d'una aplicació modular funcional. Té rutes públiques 
 
 - front controller a `public/index.php` i wrapper arrel a `index.php`;
 - router declaratiu propi a `app/Support/Router.php`;
-- controladors per a web pública, autenticació, alumnat, professorat, administració i importació manual de documents;
-- serveis d'autenticació, projectes, assignacions, assets, seccions, documents, analítica, avaluació i Google Workspace;
+- controladors per a web pública, autenticació, alumnat, professorat i administració;
+- serveis d'autenticació, projectes, assignacions, seccions, analítica, objectius, assoliment, evidències i Classroom;
 - layout compartit i vistes públiques, privades i d'administració;
 - login bàsic amb sessió, CSRF al formulari de login, CSRF a accions sensibles d'admin i control de rols web;
 - projectes, edicions per curs, assignacions a classes i equips de projecte;
-- documents, fragments, regles de visibilitat i seccions per rol;
-- estructura d'avaluació, importació de registres i consulta bàsica de notes per alumnat autenticat;
-- taules de Google Workspace, importació manual JSON de documents i webhook staging de Classroom validat amb PowerShell local i Google Apps Script via ngrok;
-- assets de projecte recuperats des de la base de dades;
+- seccions configurables de projecte;
+- objectius d'aprenentatge, indicadors d'assoliment i assoliment individual per alumne;
+- catàleg de categories i tipus d'evidències, encara sense relació amb alumnes ni objectius;
+- Classroom i membres de Classroom dins el model actual;
 - vista `access-denied.php` per a controls d'accés a contingut no autoritzat.
 
 ### Pendent o parcial
 
+- model i importació d'evidències des de Google Sheets;
 - integració real amb les API de Google Docs i Google Sheets;
+- documents, assets, fases, tasques, webhooks i taules pròpies de sincronització Google de l'antic projecte, pendents de redissenyar abans de recuperar-los;
 - sistema complet de rúbriques, criteris, puntuacions i observacions;
 - permisos més fins segons el context i l'assignació del professorat.
 
@@ -284,7 +286,7 @@ Taules existents:
 
 ```text
 users
-student_profiles
+user_activation_tokens
 web_roles
 user_web_roles
 project_roles
@@ -295,52 +297,30 @@ class_members
 class_member_history
 class_teachers
 site_visits
-settings
+login_attempts
 
 projects
 project_translations
 project_academic_years
 project_class_assignments
-project_assets
-project_asset_links
-
 project_teams
 project_team_members
 project_team_member_roles
+project_sections
 
-assessment_sources
-assessment_import_runs
-assessment_records
-assessment_import_errors
-assessment_phases
-assessment_tasks
-project_academic_year_phases
-project_academic_year_phase_tasks
-google_sources
-google_documents
-google_document_blocks
-google_sheet_rows
-google_sync_runs
-google_sync_errors
-classroom_webhook_runs
-classroom_webhook_rows
-site_pages
-login_attempts
 classrooms
 classroom_members
-assessment_task_classroom_links
-classroom_project_academic_years
-assessment_supports
-assessment_task_resources
 
-documents
-document_sources
-document_fragments
-document_visibility_rules
+objectius_aprenentatge
+indicadors_assoliment
+project_academic_year_objectius
+student_indicador_assoliment
 
-project_sections
-project_section_roles
+evidencies_categoria
+evidencies
 ```
+
+Aquest inventari conté 29 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
 
 Per reconstruir una base neta, cal executar des de l'arrel:
 
@@ -348,7 +328,7 @@ Per reconstruir una base neta, cal executar des de l'arrel:
 database/schema.sql
 ```
 
-`database/schema.sql` és l'autoritat executable i defineix la seqüència real mitjançant `SOURCE`. No s'han d'executar després totes les migracions històriques. Per actualitzar una base existent, cal seguir `database/README.md`, identificar l'estat de partida i aplicar només els ajustos incrementals corresponents.
+`database/schema.sql` és l'autoritat executable per a una reconstrucció neta. No s'han d'executar després totes les migracions històriques. Per actualitzar una base existent, cal seguir `database/README.md`, identificar l'estat de partida i aplicar només els ajustos incrementals corresponents.
 
 `project_groups` és el nom legacy anterior a `project_class_assignments`; no forma part del model final d'una reconstrucció neta.
 
@@ -363,7 +343,7 @@ Equips de projecte:
 
 `scripts/check-schema-coherence.php` s'ha d'executar després de canvis d'esquema per detectar camps legacy, relacions mal situades i índexs o uniques esperats.
 
-Les seccions i els permisos per rol ja es modelen amb `project_sections` i `project_section_roles`. Els recursos de tasques ja utilitzen `assessment_task_resources`, reutilitzant `project_assets` com a catàleg i `assessment_supports` per a bastides o ajudes associades.
+Les seccions de projecte es modelen amb `project_sections`. Els permisos detallats per secció, els assets i els recursos de tasques no formen part encara de l'esquema nou.
 
 Regla del model:
 
@@ -374,7 +354,7 @@ Regla del model:
 Quan usar cada una:
 
 - `projects`: nom, slug, ordre, activació i relacions comunes a totes les edicions;
-- `project_academic_years`: documents, imports, notes, assignacions i visibilitat que poden variar per curs;
+- `project_academic_years`: assignacions, equips, objectius i qualsevol dada que pugui variar per curs;
 - si una dada pot canviar l'any següent sense canviar el projecte base, ha d'anar a `project_academic_years`.
 
 Estats d'edició:
@@ -385,13 +365,9 @@ Estats d'edició:
 - professorat, coordinació i administració veuen al dashboard edicions de l'any actual amb estat `pendent`, `actiu` o `realitzat`; `arxivat` queda fora dels dashboards normals.
 - `ProjectAccessService` reforça l'accés directe per URL: alumnat i professorat només poden obrir edicions assignades al seu context; admin i coordinació poden obrir edicions de projecte.
 
-- `documents` han d'anar per `project_academic_year_id`;
-- `assessment_sources` i `assessment_import_runs` han d'anar per `project_academic_year_id`;
-- `assessment_phases` i `assessment_tasks` són definició base;
-- `project_academic_year_phases` i `project_academic_year_phase_tasks` governen visibilitat i ordre per curs.
-- `classroom_webhook_runs` i `classroom_webhook_rows` són staging genèric de payloads rebuts des de Google Apps Script; no són taules finals de notes ni rúbriques.
-- la vista pública de notes és només per alumnat autenticat;
-- les notes de document són internes per defecte i no s'han de mostrar a visitants ni alumnat.
+- els futurs imports d'evidències han d'anar lligats a `project_academic_year_id`;
+- les dades d'evidències i assoliment són privades i no s'han de mostrar públicament;
+- les taules de documents, avaluació avançada, webhooks i sincronització Google de l'antic projecte no formen part de l'esquema actual.
 
 Objectius i assoliment:
 
@@ -399,7 +375,8 @@ Objectius i assoliment:
 - `indicadors_assoliment` defineix els descriptors i colors del semàfor per objectiu;
 - `project_academic_year_objectius` assigna objectius a una edició concreta;
 - `student_indicador_assoliment` guarda el nivell seleccionat per alumne, objectiu i edició, inclòs el professor que l'ha avaluat;
-- l'alumnat veu el semàfor i els descriptors mitjançant tooltip, però les evidències es mostren en el seu espai corresponent.
+- `evidencies_categoria` i `evidencies` formen un catàleg inicial d'evidències;
+- encara falta modelar la relació d'una evidència concreta amb alumne, edició, objectiu i font d'importació.
 
 ---
 
@@ -777,7 +754,7 @@ Per tant, pot accedir a:
 
 ## Google Docs i Google Sheets
 
-El projecte ja té les taules de Google Workspace i un flux manual d'importació JSON de documents. La connexió real amb les API de Google encara està pendent.
+La connexió real amb Google Docs i Google Sheets encara està pendent. L'esquema actual no conté taules `google_*`, `documents_*` ni staging de webhooks.
 
 Flux previst:
 
@@ -788,48 +765,29 @@ Servei PHP de sincronització
         ↓
 Base de dades MySQL/MariaDB
         ↓
-Web pública / alumnat / professorat / administració
+Validació i importació
+        ↓
+Base de dades de Mediterrani
+        ↓
+Alumnat / professorat / administració
 ```
 
-Taules:
+Primer cas d'ús previst:
 
 ```text
-google_sources
-google_documents
-google_document_blocks
-google_sheet_rows
-google_sync_runs
-google_sync_errors
+Google Sheet d'evidències
+        ↓
+importació manual validada
+        ↓
+alumne + edició + objectiu + evidència
 ```
 
-Funció de les taules preparades:
-
-- `google_sources`: registrar documents o fulls de Google lligats a una edició concreta de projecte.
-- `google_documents`: guardar contingut processat de Google Docs.
-- `google_document_blocks`: guardar blocs o fragments processats de Google Docs.
-- `google_sheet_rows`: guardar files importades de Google Sheets.
-- `google_sync_runs`: registrar execucions de sincronització.
-- `google_sync_errors`: registrar errors de sincronització.
-
-Regla de capes:
-
-- `google_*` és la capa d'origen i sincronització amb Google Workspace;
-- `documents_*` és la capa interna publicable de l'aplicació;
-- `classroom_webhook_*` és staging d'ingesta des de Google Apps Script i conserva el payload cru abans de qualsevol processament;
-- no eliminar `documents`, `document_sources`, `document_fragments` ni `document_visibility_rules` mentre `DocumentService` continuï llegint-les;
-- el contingut Google no s'ha de publicar directament sense validació, sanitització i transformació quan calgui.
-
-Regla:
-
-- `project_id` és correcte per a relacions de catàleg del projecte base, com `project_translations` o `project_asset_links`;
-- quan el contingut sigui contextual, la font i la sincronització han d'anar lligades a `project_academic_year_id`;
-- si un document o un Sheet pot canviar per curs, no s'ha de modelar només amb `project_id`.
+Abans de crear taules de sincronització, cal definir el format del full, la identitat estable de cada fila, les validacions i la relació entre evidències, alumnes, edicions i objectius. Una dada contextual ha d'anar lligada a `project_academic_year_id`, no només a `project_id`.
 
 Normes:
 
 - No posar credencials de Google al JavaScript.
 - No publicar claus de Google.
-- El webhook `POST /api/classroom/webhook` ha de validar `Authorization: Bearer <token>` contra `CLASSROOM_WEBHOOK_TOKEN` i només ha d'acceptar `event_type` explícitament suportats.
 - Validar dades abans d’importar-les.
 - Guardar logs de sincronització.
 - No publicar dades sensibles d’alumnes directament des d’un Google Sheet.
@@ -839,9 +797,7 @@ Normes:
 
 ## Rúbriques i notes
 
-La importació de registres d'avaluació i la consulta bàsica de notes per alumnat autenticat ja estan implementades amb `assessment_sources`, `assessment_import_runs`, `assessment_records` i `assessment_import_errors`.
-
-El sistema complet de rúbriques, criteris, nivells, puntuacions i observacions encara està pendent.
+El model actual només cobreix objectius, indicadors d'assoliment i el nivell seleccionat per alumne a `student_indicador_assoliment`. La importació de notes, les rúbriques, les puntuacions, les observacions i les evidències vinculades a alumnes encara estan pendents.
 
 Taules previstes més endavant:
 

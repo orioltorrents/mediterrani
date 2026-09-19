@@ -13,7 +13,7 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 
 ## Esquema actual
 
-`schema.sql` crea 27 taules:
+`schema.sql` crea 29 taules. La base local revisada en data 2026-09-19 també conté aquestes 29 taules.
 
 ### Usuaris i accés
 
@@ -50,6 +50,11 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 - `project_academic_year_objectius`
 - `indicadors_assoliment`
 - `student_indicador_assoliment`
+
+### Evidències
+
+- `evidencies_categoria`
+- `evidencies`
 
 ### Classroom i analítica
 
@@ -96,6 +101,14 @@ project_academic_years N ---- N objectius_aprenentatge
 
 users 1 ---- N student_indicador_assoliment
 ```
+
+Les categories agrupen el catàleg d'evidències que mostra el dashboard d'administració.
+
+```text
+evidencies_categoria 1 ---- N evidencies
+```
+
+Aquest catàleg encara no relaciona evidències concretes amb alumnes, edicions de projecte o objectius d'aprenentatge. Aquesta relació s'haurà de modelar abans d'importar evidències des d'un full de càlcul.
 
 Els Classroom estan vinculats al curs, a una edició de projecte i als usuaris que en són membres.
 
@@ -147,6 +160,8 @@ Migracions disponibles:
 | `20260909_create_classroom_members.sql` | Crea la relació entre Classroom i usuaris. | No crea usuaris automàticament. |
 | `20260909_project_teams_class_id.sql` | Afegeix la relació real entre equips i classes. | Inclou una actualització basada en `class_group`; cal revisar els valors no resolts. |
 | `20260918_create_user_activation_tokens.sql` | Crea els tokens d'activació d'usuaris. | La taula queda vinculada a `users` amb eliminació en cascada. |
+| `20260919_create_evidencies.sql` | Crea les categories i el catàleg d'evidències. | No crea encara relacions amb alumnes ni objectius d'aprenentatge. |
+| `20260919_add_current_schema_indexes_and_fks.sql` | Completa índexs i claus foranes del model actual. | Requereix comprovar abans que `project_team_members` no contingui classes o rols orfes. |
 
 Les migracions no disposen actualment d'una taula de control automàtic. Abans d'aplicar-ne una, cal comprovar manualment si el canvi ja existeix per evitar columnes, claus o índexs duplicats.
 

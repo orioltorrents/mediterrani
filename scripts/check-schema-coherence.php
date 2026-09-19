@@ -145,7 +145,7 @@ $editionScopedTables = [
             'referencedTable' => 'project_academic_years',
             'referencedColumn' => 'id',
         ]],
-        'uniqueIndexes' => [['project_academic_year_id', 'classroom_key'], ['academic_year_id', 'classroom_key']],
+        'uniqueIndexes' => [['academic_year_id', 'classroom_key']],
         'indexes' => [['project_academic_year_id', 'is_active'], ['academic_year_id', 'is_active'], ['google_classroom_id']],
     ],
     'classroom_project_academic_years' => [
@@ -250,31 +250,40 @@ $editionScopedTables = [
             'referencedTable' => 'users',
             'referencedColumn' => 'id',
         ]],
-        'uniqueIndexes' => [['class_id', 'user_id'], ['user_id']],
+        'uniqueIndexes' => [['user_id']],
         'indexes' => [['class_id']],
     ],
     'class_member_history' => [
-        'requiredColumns' => ['user_id', 'previous_class_id', 'new_class_id', 'academic_year_id'],
+        'requiredColumns' => ['user_id', 'from_class_id', 'to_class_id'],
         'fks' => [[
             'column' => 'user_id',
             'referencedTable' => 'users',
             'referencedColumn' => 'id',
         ], [
-            'column' => 'previous_class_id',
+            'column' => 'from_class_id',
             'referencedTable' => 'classes',
             'referencedColumn' => 'id',
         ], [
-            'column' => 'new_class_id',
+            'column' => 'to_class_id',
             'referencedTable' => 'classes',
-            'referencedColumn' => 'id',
-        ], [
-            'column' => 'academic_year_id',
-            'referencedTable' => 'academic_years',
             'referencedColumn' => 'id',
         ]],
-        'indexes' => [['user_id'], ['academic_year_id'], ['previous_class_id'], ['new_class_id']],
+        'indexes' => [['user_id'], ['from_class_id'], ['to_class_id']],
     ],
 ];
+
+$currentTables = [
+    'users',
+    'project_class_assignments',
+    'project_teams',
+    'classrooms',
+    'classroom_members',
+    'project_team_members',
+    'project_team_member_roles',
+    'class_members',
+    'class_member_history',
+];
+$editionScopedTables = array_intersect_key($editionScopedTables, array_flip($currentTables));
 
 foreach ($editionScopedTables as $table => $rules) {
     if (!tableExists($pdo, $table)) {
@@ -394,11 +403,12 @@ function indexExistsWithColumns(PDO $pdo, string $table, array $columns, bool $u
             continue;
         }
 
-        if (!$unique && (int) $row['NON_UNIQUE'] === 0) {
-            continue;
-        }
+        $indexColumns = explode(',', (string) $row['cols']);
+        $matches = $unique
+            ? (string) $row['cols'] === $target
+            : array_slice($indexColumns, 0, count($columns)) === $columns;
 
-        if ((string) $row['cols'] === $target) {
+        if ($matches) {
             return true;
         }
     }

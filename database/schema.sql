@@ -5,6 +5,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS student_indicador_assoliment, indicadors_assoliment, project_academic_year_objectius,
+    evidencies, evidencies_categoria,
     project_team_member_roles, project_team_members, project_teams, project_sections, project_class_assignments,
     project_academic_years, project_translations, project_roles, classroom_members, classrooms, class_member_history,
     class_members, class_teachers, classes, academic_years, site_visits, login_attempts, user_activation_tokens, user_web_roles,
@@ -189,6 +190,7 @@ CREATE TABLE project_teams (
     UNIQUE KEY uq_project_team_code (project_academic_year_id, team_code),
     UNIQUE KEY uq_project_team_name_class (project_academic_year_id, class_id, team_name),
     KEY idx_project_teams_edition (project_academic_year_id),
+    KEY idx_project_teams_active_order (project_academic_year_id, is_active, display_order),
     KEY idx_project_teams_class (class_id),
     CONSTRAINT fk_project_teams_edition FOREIGN KEY (project_academic_year_id) REFERENCES project_academic_years(id) ON DELETE CASCADE
     ,CONSTRAINT fk_project_teams_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
@@ -236,6 +238,26 @@ CREATE TABLE project_sections (
     UNIQUE KEY uq_project_section (project_id, section_key),
     KEY idx_sections_project (project_id), KEY idx_sections_order (display_order),
     CONSTRAINT fk_sections_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE evidencies_categoria (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(50) NOT NULL,
+    descripcio TEXT NULL,
+    color_code VARCHAR(7) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE evidencies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    evidencia_categoria_id INT NOT NULL,
+    tipus_evidencia VARCHAR(50) NOT NULL,
+    titol VARCHAR(255) NOT NULL,
+    descripcio TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_evidencies_categoria (evidencia_categoria_id),
+    CONSTRAINT fk_evidencies_categoria FOREIGN KEY (evidencia_categoria_id)
+        REFERENCES evidencies_categoria(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE objectius_aprenentatge (
@@ -301,6 +323,8 @@ CREATE TABLE classrooms (
     UNIQUE KEY uq_classrooms_google_id (google_classroom_id),
     KEY idx_classrooms_year (academic_year_id),
     KEY idx_classrooms_project_year (project_academic_year_id),
+    KEY idx_classrooms_year_active (academic_year_id, is_active),
+    KEY idx_classrooms_project_year_active (project_academic_year_id, is_active),
     CONSTRAINT fk_classrooms_year FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
     CONSTRAINT fk_classrooms_project_year FOREIGN KEY (project_academic_year_id) REFERENCES project_academic_years(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

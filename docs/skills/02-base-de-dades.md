@@ -25,21 +25,20 @@ La base de dades ha de permetre gestionar:
 - connexió amb PDO des de `config/database.php`;
 - esquema educatiu base amb usuaris, rols, classes, projectes, idiomes i assignacions;
 - `project_academic_years` com a unitat funcional per a dades d'edició;
-- taules d'avaluació i estructura de fases i tasques;
-- catàleg d'assets de projecte i relacions amb projectes;
-- capa de documents, fragments i visibilitat;
-- documents lligats a `project_academic_years`;
-- notes i imports d'avaluació lligats a `project_academic_year_id`;
-- capa de Google Workspace preparada amb taules pròpies lligades a `project_academic_years`;
-- seccions de projecte i permisos per rol;
-- taula d'analítica de visites `site_visits`.
+- seccions configurables de projecte a `project_sections`;
+- taula d'analítica de visites `site_visits`;
 - objectius d'aprenentatge i indicadors d'assoliment per objectiu;
 - avaluació individual a `student_indicador_assoliment`, lligada a usuari, objectiu i edició;
 - equips i membres per projecte a `project_teams`, `project_team_members` i `project_team_member_roles`;
+- Classroom i membres de Classroom;
+- catàleg inicial de categories i tipus d'evidències.
 
 ### Encara previst
 
+- relació d'evidències concretes amb alumnes, edicions i objectius;
+- importació manual d'evidències des de CSV o Google Sheets;
 - integració real amb Google Workspace;
+- documents, assets, fases, tasques i webhooks de l'antic projecte, pendents de redissenyar;
 - taules de rúbriques i notes definitives;
 - possibles extensions de visibilitat i historial si calen més endavant.
 
@@ -91,11 +90,11 @@ DB_CHARSET=utf8mb4
 
 ## Taules actuals
 
-L'esquema final inclou:
+L'esquema executable actual inclou exactament 29 taules:
 
 ```text
 users
-student_profiles
+user_activation_tokens
 web_roles
 user_web_roles
 project_roles
@@ -106,61 +105,32 @@ class_members
 class_member_history
 class_teachers
 site_visits
-settings
-site_pages
+login_attempts
 
 projects
 project_translations
 project_academic_years
 project_class_assignments
-project_assets
-project_asset_links
-
 project_teams
 project_team_members
 project_team_member_roles
-
-assessment_sources
-assessment_import_runs
-assessment_records
-assessment_import_errors
-assessment_phases
-assessment_tasks
-project_academic_year_phases
-project_academic_year_phase_tasks
-assessment_supports
-assessment_task_resources
+project_sections
 
 classrooms
-classroom_project_academic_years
 classroom_members
-assessment_task_classroom_links
-classroom_webhook_runs
-classroom_webhook_rows
 
-documents
-document_sources
-document_fragments
-document_visibility_rules
-
-project_sections
-project_section_roles
 objectius_aprenentatge
 indicadors_assoliment
 project_academic_year_objectius
 student_indicador_assoliment
 
-google_sources
-google_documents
-google_document_blocks
-google_sheet_rows
-google_sync_runs
-google_sync_errors
+evidencies_categoria
+evidencies
 ```
 
-La taula `site_visits` es garanteix des del servei d'analítica si encara no existeix.
+La font canònica és `database/schema.sql`. Qualsevol nom de taula que aparegui més endavant però no sigui en aquesta llista és una proposta heretada o futura, encara que el text històric descrigui el comportament en present.
 
-`project_groups` és un nom legacy. El model actual utilitza `project_class_assignments`; `database/12_project_class_assignments.sql` només conserva la conversió per a bases antigues.
+`project_groups` és un nom legacy. El model actual utilitza `project_class_assignments`.
 
 ## Reconstrucció i migracions
 
@@ -170,7 +140,7 @@ Per reconstruir una base neta, cal executar:
 database/schema.sql
 ```
 
-La seqüència dels `SOURCE`, la classificació dels ajustos incrementals i els canvis històrics ja absorbits es documenten únicament a `database/README.md`.
+La classificació dels ajustos incrementals i els canvis ja absorbits es documenta a `database/README.md`.
 
 Per actualitzar una base existent, no s'han d'executar totes les migracions indiscriminadament. Cal identificar l'estat de partida, fer una còpia de seguretat i aplicar només els ajustos posteriors que corresponguin.
 
@@ -329,8 +299,6 @@ Taules:
 projects
 project_translations
 project_class_assignments
-project_assets
-project_asset_links
 ```
 
 Funció:
@@ -339,8 +307,6 @@ Funció:
 projects              → dades bàsiques del projecte
 project_translations  → títol i descripció per idioma
 project_class_assignments → assignació de cada edició a classes
-project_assets        → catàleg de logos, softwares i apps
-project_asset_links   → relació d’assets amb projectes
 ```
 
 Projectes inicials:
@@ -364,7 +330,28 @@ Projecte Orenetes  → 4ESOA
 Liquencity         → 4ESOB
 ```
 
-## Documents
+## Evidències actuals
+
+Taules:
+
+```text
+evidencies_categoria
+evidencies
+```
+
+Relació:
+
+```text
+evidencies_categoria 1 → N evidencies
+```
+
+`evidencies_categoria` defineix les agrupacions visuals amb nom, descripció i color. `evidencies` defineix el catàleg de tipus d'evidència que mostra el dashboard d'administració.
+
+Aquest model encara no representa evidències concretes d'un alumne. Falta dissenyar la relació amb `users`, `project_academic_years`, `objectius_aprenentatge`, la font d'importació i, si correspon, una tasca.
+
+## Documents (model heretat, no implementat)
+
+Les taules d'aquest apartat no existeixen a l'esquema actual. El contingut següent es conserva únicament com a referència per a un possible redisseny.
 
 Taules:
 
@@ -397,7 +384,9 @@ Quan usar cada una:
 - `project_academic_years`: dades que canvien per curs o edició;
 - si la consulta necessita saber quin curs és actiu o quin context d'aula hi ha, parteix de `project_academic_years`.
 
-## Avaluació
+## Avaluació avançada (model heretat, no implementat)
+
+De les taules descrites en aquest apartat, actualment només existeixen `classrooms` i `classroom_members`. Les taules `assessment_*`, les taules pont de fases o tasques i les taules de webhooks són propostes heretades i no es poden consultar ni importar encara.
 
 Taules:
 
@@ -432,14 +421,13 @@ Norma clau:
 - `assessment_task_classroom_links` guarda la URL concreta d'una tasca dins un Classroom.
 - `classroom_webhook_runs` i `classroom_webhook_rows` guarden payloads rebuts per webhook abans de qualsevol transformació cap a taules finals.
 
-### Classrooms
+### Classrooms actuals i evolució prevista
 
-La taula `classrooms` representa els Google Classrooms associats a un curs acadèmic. Un mateix Classroom pot estar vinculat a una o més edicions de projecte amb `classroom_project_academic_years`.
+La taula `classrooms` representa els Google Classrooms associats a un curs acadèmic i directament a una edició de projecte.
 
 ```text
 classrooms.academic_year_id -> academic_years.id
-classroom_project_academic_years.classroom_id              -> classrooms.id
-classroom_project_academic_years.project_academic_year_id -> project_academic_years.id
+classrooms.project_academic_year_id -> project_academic_years.id
 ```
 
 Camps principals:
@@ -457,14 +445,16 @@ is_active
 Regles:
 
 - `classroom_key` és una clau pròpia estable generada pel procés d'importació;
-- `project_academic_year_id` es manté de moment com a camp nullable de compatibilitat amb dades existents, però el codi nou ha d'usar `academic_year_id` i `classroom_project_academic_years`;
+- `project_academic_year_id` és obligatori en el model actual;
 - `google_classroom_id` és la referència externa de Google Classroom i pot ser nul si encara no està disponible;
 - `classroom_url` és la URL general del Classroom;
 - `task_url` no s'ha de guardar a `classrooms`, perquè és l'enllaç d'una tasca concreta dins aquell Classroom;
 - la unicitat funcional nova és `academic_year_id + classroom_key`;
-- la relació amb projectes és `classroom_id + project_academic_year_id` a `classroom_project_academic_years`.
+- cada Classroom queda vinculat directament a una edició de projecte.
 
-Classrooms amb un o més projectes:
+Evolució futura per a Classrooms amb més d'un projecte:
+
+La taula pont `classroom_project_academic_years` descrita a continuació no existeix encara. Només s'hauria de crear si es confirma que un mateix Classroom ha de vincular-se a diverses edicions.
 
 - si un Classroom correspon a un sol projecte, el CSV de membres pot portar `project_slug` i el vincle queda creat automàticament;
 - si un Classroom agrupa alumnes que treballen en dos o més projectes, el CSV de membres ha de deixar `project_slug` buit;
@@ -474,7 +464,7 @@ Classrooms amb un o més projectes:
 
 El CSV unificat de fases, tasques i Classroom podrà alimentar `classrooms`, `assessment_phases`, `assessment_tasks` i les taules pont d'edició. L'importador és responsable de separar el CSV en el model normalitzat de base de dades.
 
-### Enllacos de tasques per Classroom
+### Enllaços de tasques per Classroom (proposta heretada)
 
 La taula `assessment_task_classroom_links` relaciona una tasca assignada a una edició amb un Classroom concret.
 
@@ -503,7 +493,7 @@ Regles:
 - la unicitat funcional és `project_academic_year_phase_task_id + classroom_id`;
 - aquesta taula no substitueix `assessment_tasks`, perquè `assessment_tasks` continua representant la tasca base.
 
-### Webhook staging de Classroom
+### Webhook staging de Classroom (proposta heretada)
 
 Les taules `classroom_webhook_runs` i `classroom_webhook_rows` són una capa d'ingesta genèrica per a payloads enviats des de Google Apps Script.
 
@@ -667,9 +657,9 @@ Exemple de tasca comuna per a tots els rols:
 
 En aquest cas l'última columna queda buida expressament: `role_filter` buit fa que la tasca sigui visible per a tots els alumnes del Classroom.
 
-### Importació de fases
+### Importació de fases (format heretat, no executable)
 
-Les fases es poden importar des de CSV exportat de Google Sheets. El format actual espera aquests headers:
+L'antic projecte preveia importar fases des de CSV exportat de Google Sheets amb aquests headers:
 
 ```text
 academic_year,project,phase_key,phase_num,phase_name,phase_complet_name,phase_description,phase_comment,display_order,is_active
@@ -693,7 +683,7 @@ is_active           -> assessment_phases.is_active i project_academic_year_phase
 
 Regla important: l'assignació de la fase es fa nomes per l'edició concreta resolta amb `academic_year + project`. No s'han d'actualitzar totes les edicions històriques del mateix projecte.
 
-### Visibilitat de fases per estat d'edició
+### Visibilitat de fases per estat d'edició (proposta heretada)
 
 La gestió d'administració i la consulta de l'alumnat no tenen la mateixa regla:
 
@@ -702,9 +692,9 @@ La gestió d'administració i la consulta de l'alumnat no tenen la mateixa regla
 - mentre una edició està `pendent` o `actiu`, l'alumnat només veu fases amb `project_academic_year_phases.is_active = 1` i tasques amb `project_academic_year_phase_tasks.is_visible = 1`;
 - quan una edició passa a `realitzat`, l'alumnat pot consultar totes les fases i totes les tasques de l'edició, encara que els flags `is_active` o `is_visible` estiguin desactivats.
 
-### Importació de tasques
+### Importació de tasques (format heretat, no executable)
 
-Les tasques es poden importar amb aquests headers:
+L'antic projecte preveia importar tasques amb aquests headers:
 
 ```text
 id,academic_year,project_slug,phase_key,task_name,title,description,weight_label,role_filter,display_order,is_visible
@@ -782,7 +772,9 @@ ca
 
 ---
 
-## Assets de projectes
+## Assets de projectes (model heretat, no implementat)
+
+`project_assets`, `project_asset_links`, `assessment_supports` i `assessment_task_resources` no formen part de l'esquema actual.
 
 Taules:
 
@@ -813,7 +805,7 @@ Veure també:
 
 ### Recursos de tasques
 
-La relació entre eines, apps o softwares i una tasca d'avaluació ja es modela amb `assessment_task_resources`. Les bastides i ajudes reutilitzables es cataloguen a `assessment_supports`.
+En un futur, la relació entre eines, apps o softwares i una tasca es podria modelar amb `assessment_task_resources`, i les bastides reutilitzables amb `assessment_supports`.
 
 Camps principals de la relació:
 
@@ -830,9 +822,11 @@ Això permet reutilitzar `project_assets` com a catàleg, vincular una bastida a
 
 ---
 
-## Visibilitat i context
+## Visibilitat i context (model heretat, no implementat)
 
-La base ja disposa de `project_sections`, `project_section_roles` i `document_visibility_rules` per controlar seccions i continguts segons el context.
+Actualment només existeix `project_sections`; `project_section_roles` i `document_visibility_rules` encara no existeixen.
+
+El model futur podria ampliar `project_sections` amb relacions de rol i regles de visibilitat, però aquestes taules encara no existeixen.
 
 Criteris:
 
@@ -927,7 +921,7 @@ JOIN projects ON projects.id = project_academic_years.project_id
 ORDER BY classes.class_name, projects.name;
 ```
 
-### Documents per edició de projecte
+### Documents per edició de projecte (consulta futura, no executable)
 
 ```sql
 SELECT
@@ -948,7 +942,7 @@ Norma:
 - evita basar la lògica de documents en el projecte base;
 - usa `project_academic_years` per saber quin curs i quin projecte defineixen el document.
 
-### Veure assets per projecte
+### Veure assets per projecte (consulta futura, no executable)
 
 ```sql
 SELECT
@@ -992,7 +986,9 @@ Això és especialment útil per:
 
 ---
 
-## Google Workspace
+## Google Workspace (model futur, no implementat)
+
+Les taules `google_*` d'aquest apartat no existeixen a l'esquema actual. Abans de crear-les cal prioritzar el cas d'ús d'importació d'evidències, definir el format del full i validar el model de relacions.
 
 Taules:
 
@@ -1005,15 +1001,13 @@ google_sync_runs
 google_sync_errors
 ```
 
-Norma clau:
+Proposta de disseny que s'haurà de validar abans d'implementar-la:
 
 - la unitat funcional és `project_academic_years` quan el contingut és contextual;
-- `google_sources` i els resultats sincronitzats han d'anar lligats a `project_academic_year_id`;
+- les futures fonts i els resultats sincronitzats haurien d'anar lligats a `project_academic_year_id`;
 - no publicar dades directament des de Google sense validació i sense passar per la BD.
-- `google_*` és capa d'origen i sincronització; `documents_*` és capa interna publicable;
-- no eliminar `documents`, `document_sources`, `document_fragments` ni `document_visibility_rules` mentre `DocumentService` continuï llegint-les;
-- per Docs, el flux recomanat és `google_sources` → `google_documents` → `google_document_blocks` → `documents` / `document_fragments` / `document_visibility_rules`;
-- per Sheets, el flux recomanat és `google_sources` → `google_sheet_rows` → `assessment_records` o altres taules finals validades.
+- si es recupera aquest disseny, `google_*` seria la capa d'origen i sincronització;
+- per a Sheets, el primer flux que s'ha de dissenyar és la importació validada cap a les futures relacions d'evidències.
 
 ---
 
