@@ -66,6 +66,19 @@ class AdminActionService
             return $result;
         }
 
+        $evidenceHandlers = [
+            'create_student_evidence' => 'createStudentEvidence',
+            'update_evidence_category' => 'updateCategory',
+            'update_evidence_type' => 'updateType',
+        ];
+
+        if (isset($evidenceHandlers[$action])) {
+            $result = (new AdminEvidenceService($this->pdo))->{$evidenceHandlers[$action]}($post);
+            $this->auditAdminAction($action);
+
+            return $result;
+        }
+
         if ($action === 'import_students') {
             $result = (new AdminStudentImportService($this->pdo))->importUploadedFile($files['students_file'] ?? []);
             $this->auditAdminAction($action);

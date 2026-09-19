@@ -29,7 +29,7 @@ El projecte ja disposa d'una aplicació modular funcional. Té rutes públiques 
 - projectes, edicions per curs, assignacions a classes i equips de projecte;
 - seccions configurables de projecte;
 - objectius d'aprenentatge, indicadors d'assoliment i assoliment individual per alumne;
-- catàleg de categories i tipus d'evidències, encara sense relació amb alumnes ni objectius;
+- categories, tipus i evidències d'alumnes relacionades amb edicions i objectius;
 - Classroom i membres de Classroom dins el model actual;
 - vista `access-denied.php` per a controls d'accés a contingut no autoritzat.
 
@@ -317,10 +317,11 @@ project_academic_year_objectius
 student_indicador_assoliment
 
 evidencies_categoria
-evidencies
+evidencies_tipus
+evidencies_alumnes
 ```
 
-Aquest inventari conté 29 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
+Aquest inventari conté 30 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
 
 Per reconstruir una base neta, cal executar des de l'arrel:
 
@@ -375,8 +376,10 @@ Objectius i assoliment:
 - `indicadors_assoliment` defineix els descriptors i colors del semàfor per objectiu;
 - `project_academic_year_objectius` assigna objectius a una edició concreta;
 - `student_indicador_assoliment` guarda el nivell seleccionat per alumne, objectiu i edició, inclòs el professor que l'ha avaluat;
-- `evidencies_categoria` i `evidencies` formen un catàleg inicial d'evidències;
-- encara falta modelar la relació d'una evidència concreta amb alumne, edició, objectiu i font d'importació.
+- `evidencies_categoria` defineix les categories de procés, producte i metacognició;
+- `evidencies_tipus` defineix el catàleg de tipus concrets d'evidència;
+- `evidencies_alumnes` relaciona una evidència registrada amb alumne, edició, objectiu, categoria i tipus;
+- encara falta modelar la font d'importació des de full de càlcul.
 
 ---
 

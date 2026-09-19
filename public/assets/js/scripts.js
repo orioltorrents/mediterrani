@@ -612,6 +612,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const initEvidenceEntryForms = (root = document) => {
+        root.querySelectorAll('[data-evidence-entry-form]').forEach((form) => {
+            if (form.dataset.evidenceEntryBound === 'true') return;
+
+            const editionSelect = form.querySelector('[data-evidence-project-year]');
+            const objectiveSelect = form.querySelector('[data-evidence-objective]');
+            const categorySelect = form.querySelector('[data-evidence-category]');
+            const typeSelect = form.querySelector('[data-evidence-type]');
+            if (!editionSelect || !objectiveSelect || !categorySelect || !typeSelect) return;
+
+            const filterOptions = (source, target, matches, emptyLabel) => {
+                const sourceValue = source.value;
+                let visibleCount = 0;
+
+                Array.from(target.options).forEach((option, index) => {
+                    if (index === 0) return;
+                    const isVisible = sourceValue !== '' && matches(option, sourceValue);
+                    option.hidden = !isVisible;
+                    option.disabled = !isVisible;
+                    if (isVisible) visibleCount++;
+                });
+
+                const selectedOption = target.options[target.selectedIndex];
+                if (!selectedOption || selectedOption.disabled) target.value = '';
+                target.disabled = sourceValue === '' || visibleCount === 0;
+                target.options[0].textContent = sourceValue === ''
+                    ? emptyLabel
+                    : (visibleCount > 0 ? 'Selecciona una opció' : 'No hi ha opcions disponibles');
+            };
+
+            const syncObjectives = () => filterOptions(
+                editionSelect,
+                objectiveSelect,
+                (option, editionId) => (option.getAttribute('data-editions') || '').split(',').includes(editionId),
+                'Selecciona primer una edició'
+            );
+            const syncTypes = () => filterOptions(
+                categorySelect,
+                typeSelect,
+                (option, categoryId) => option.getAttribute('data-category-id') === categoryId,
+                'Selecciona primer una categoria'
+            );
+
+            form.dataset.evidenceEntryBound = 'true';
+            editionSelect.addEventListener('change', syncObjectives);
+            categorySelect.addEventListener('change', syncTypes);
+            syncObjectives();
+            syncTypes();
+        });
+    };
+
     const initLightbox = () => {
         if (document.body.dataset.avatarLightboxBound === 'true') return;
 
@@ -727,6 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initUserFilters(root);
         initTeamFilters(root);
         initRoleFilters(root);
+        initEvidenceEntryForms(root);
         initGeoMaps(root);
         openCollapsibleForHash(window.location.hash, root);
     };

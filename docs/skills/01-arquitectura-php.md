@@ -299,7 +299,8 @@ resources/views/admin/
 	├── classroom.php
 	├── projectes.php
 	├── objectius.php
-	└── indicadors.php
+	├── indicadors.php
+	└── evidencies.php
 ```
 
 El dashboard admet càrrega parcial amb `GET /admin?section=<secció>` per a les seccions incloses a la llista blanca del controlador. La petició continua passant per l'autenticació i el rol d'administració, reutilitza el mateix context de dades i retorna només el partial sol·licitat. Sense `section`, es conserva el renderitzat PHP complet com a fallback funcional.

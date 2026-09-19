@@ -111,7 +111,7 @@
                         <div class="admin-summary__breakdown" aria-label="Evidències per tipus">
                             <?php foreach (($evidenceSummary['types'] ?? []) as $type): ?>
                                 <div class="admin-summary__breakdown-row">
-                                    <span class="admin-evidence-label"><span class="admin-evidence-dot" style="--evidence-color: <?= htmlspecialchars((string) ($type['color_code'] ?? '#94a3b8'), ENT_QUOTES, 'UTF-8') ?>"></span><span><strong><?= htmlspecialchars((string) ($type['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong><small class="admin-evidence-category"><?= htmlspecialchars((string) ($type['category_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></span></span>
+                                    <span class="admin-evidence-label"><span class="admin-evidence-dot" style="--evidence-color: <?= htmlspecialchars((string) ($type['color_code'] ?? '#94a3b8'), ENT_QUOTES, 'UTF-8') ?>"></span><span><strong><?= htmlspecialchars((string) ($type['titol'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong><small class="admin-evidence-category"><?= htmlspecialchars((string) ($type['category_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></span></span>
                                     <span class="admin-summary__breakdown-count"><?= (int) ($type['evidence_count'] ?? 0) ?></span>
                                 </div>
                             <?php endforeach; ?>
@@ -121,15 +121,9 @@
                 <div class="admin-summary__card admin-evidence-summary__list-card">
                     <div class="admin-summary__icon">📋</div>
                     <div class="admin-summary__body">
-                        <span class="admin-summary__label">Evidències disponibles</span>
+                        <span class="admin-summary__label">Evidències d'alumnes</span>
                         <strong class="admin-summary__value"><?= (int) ($evidenceSummary['count'] ?? 0) ?></strong>
-                        <div class="admin-summary__breakdown" aria-label="Llista d'evidències">
-                            <?php foreach (($evidenceSummary['evidences'] ?? []) as $evidence): ?>
-                                <div class="admin-summary__breakdown-row admin-evidence-row">
-                                    <span class="admin-evidence-label"><span class="admin-evidence-dot" style="--evidence-color: <?= htmlspecialchars((string) ($evidence['color_code'] ?? '#94a3b8'), ENT_QUOTES, 'UTF-8') ?>"></span><?= htmlspecialchars((string) ($evidence['titol'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                        <span class="admin-summary__desc"><?= (int) ($evidenceSummary['types_count'] ?? 0) ?> tipus disponibles</span>
                     </div>
                 </div>
             </div>

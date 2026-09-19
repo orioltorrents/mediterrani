@@ -7,8 +7,12 @@ class AdminController
         $pdo = $this->pdo();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $action = (string) ($_POST['action'] ?? '');
             $this->handlePost($pdo);
-            header('Location: ' . url('admin'));
+            $redirect = in_array($action, ['create_student_evidence', 'update_evidence_category', 'update_evidence_type'], true)
+                ? url('admin') . '#evidencies'
+                : url('admin');
+            header('Location: ' . $redirect);
             exit;
         }
 
@@ -73,6 +77,7 @@ class AdminController
             'projectes',
             'objectius',
             'indicadors',
+            'evidencies',
         ];
 
         return in_array($section, $allowedSections, true) ? $section : null;

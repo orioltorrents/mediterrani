@@ -31,7 +31,7 @@ La base de dades ha de permetre gestionar:
 - avaluació individual a `student_indicador_assoliment`, lligada a usuari, objectiu i edició;
 - equips i membres per projecte a `project_teams`, `project_team_members` i `project_team_member_roles`;
 - Classroom i membres de Classroom;
-- catàleg inicial de categories i tipus d'evidències.
+- categories, tipus i evidències d'alumnes relacionades amb edicions i objectius.
 
 ### Encara previst
 
@@ -90,7 +90,7 @@ DB_CHARSET=utf8mb4
 
 ## Taules actuals
 
-L'esquema executable actual inclou exactament 29 taules:
+L'esquema executable actual inclou exactament 30 taules:
 
 ```text
 users
@@ -125,7 +125,8 @@ project_academic_year_objectius
 student_indicador_assoliment
 
 evidencies_categoria
-evidencies
+evidencies_tipus
+evidencies_alumnes
 ```
 
 La font canònica és `database/schema.sql`. Qualsevol nom de taula que aparegui més endavant però no sigui en aquesta llista és una proposta heretada o futura, encara que el text històric descrigui el comportament en present.
@@ -336,18 +337,20 @@ Taules:
 
 ```text
 evidencies_categoria
-evidencies
+evidencies_tipus
+evidencies_alumnes
 ```
 
 Relació:
 
 ```text
-evidencies_categoria 1 → N evidencies
+evidencies_categoria 1 → N evidencies_tipus
+evidencies_tipus 1 → N evidencies_alumnes
 ```
 
-`evidencies_categoria` defineix les agrupacions visuals amb nom, descripció i color. `evidencies` defineix el catàleg de tipus d'evidència que mostra el dashboard d'administració.
+`evidencies_categoria` defineix les agrupacions visuals amb nom, descripció i color. Les categories inicials són procés, producte i metacognitiva. `evidencies_tipus` defineix el catàleg de formes concretes d'evidència que mostra el dashboard d'administració.
 
-Aquest model encara no representa evidències concretes d'un alumne. Falta dissenyar la relació amb `users`, `project_academic_years`, `objectius_aprenentatge`, la font d'importació i, si correspon, una tasca.
+`evidencies_alumnes` representa evidències concretes i les relaciona amb `users`, `project_academic_years`, `objectius_aprenentatge`, categoria i tipus. Encara falta dissenyar la font d'importació i, si correspon, una relació amb tasques.
 
 ## Documents (model heretat, no implementat)
 

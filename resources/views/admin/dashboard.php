@@ -270,6 +270,15 @@ if (is_string($requestedSection ?? null) && $requestedSection !== '') {
                     <a href="<?= url('admin') ?>?section=indicadors#indicadors" data-dashboard-section="indicadors">Indicadors</a>
                 </div>
             </div>
+            <div class="admin-layout__nav-group" data-nav-group>
+                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="evidencies-submenu" data-dashboard-section="evidencies" aria-expanded="false" aria-controls="evidencies-submenu">
+                    Evidències
+                </button>
+                <div class="admin-layout__submenu" id="evidencies-submenu" hidden>
+                    <a href="<?= url('admin') ?>?section=evidencies#categories-evidencies" data-dashboard-section="evidencies">Categories</a>
+                    <a href="<?= url('admin') ?>?section=evidencies#tipus-evidencies" data-dashboard-section="evidencies">Tipus</a>
+                </div>
+            </div>
         </nav>
     </aside>
 
@@ -330,6 +339,8 @@ if (is_string($requestedSection ?? null) && $requestedSection !== '') {
         <?php include __DIR__ . '/partials/objectius.php'; ?>
 
         <?php include __DIR__ . '/partials/indicadors.php'; ?>
+
+        <?php include __DIR__ . '/partials/evidencies.php'; ?>
 
     </div>
 </div>

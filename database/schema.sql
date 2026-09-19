@@ -4,8 +4,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-DROP TABLE IF EXISTS student_indicador_assoliment, indicadors_assoliment, project_academic_year_objectius,
-    evidencies, evidencies_categoria,
+DROP TABLE IF EXISTS evidencies_alumnes, student_indicador_assoliment, indicadors_assoliment, project_academic_year_objectius,
+    evidencies_tipus, evidencies_categoria,
     project_team_member_roles, project_team_members, project_teams, project_sections, project_class_assignments,
     project_academic_years, project_translations, project_roles, classroom_members, classrooms, class_member_history,
     class_members, class_teachers, classes, academic_years, site_visits, login_attempts, user_activation_tokens, user_web_roles,
@@ -247,7 +247,7 @@ CREATE TABLE evidencies_categoria (
     color_code VARCHAR(7) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE evidencies (
+CREATE TABLE evidencies_tipus (
     id INT AUTO_INCREMENT PRIMARY KEY,
     evidencia_categoria_id INT NOT NULL,
     tipus_evidencia VARCHAR(50) NOT NULL,
@@ -255,8 +255,8 @@ CREATE TABLE evidencies (
     descripcio TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_evidencies_categoria (evidencia_categoria_id),
-    CONSTRAINT fk_evidencies_categoria FOREIGN KEY (evidencia_categoria_id)
+    KEY idx_evidencies_tipus_categoria (evidencia_categoria_id),
+    CONSTRAINT fk_evidencies_tipus_categoria FOREIGN KEY (evidencia_categoria_id)
         REFERENCES evidencies_categoria(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -306,6 +306,28 @@ CREATE TABLE student_indicador_assoliment (
     CONSTRAINT fk_sia_project_year FOREIGN KEY (project_academic_year_id) REFERENCES project_academic_years(id) ON DELETE CASCADE,
     CONSTRAINT fk_sia_objectiu FOREIGN KEY (objectiu_id) REFERENCES objectius_aprenentatge(id) ON DELETE CASCADE,
     CONSTRAINT fk_sia_evaluator FOREIGN KEY (evaluated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE evidencies_alumnes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    project_academic_year_id INT NOT NULL,
+    objectiu_id INT NOT NULL,
+    evidencia_categoria_id INT NULL,
+    evidencia_tipus_id INT NULL,
+    observacio TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_ea_user (user_id),
+    KEY idx_ea_project_year (project_academic_year_id),
+    KEY idx_ea_objectiu (objectiu_id),
+    KEY idx_ea_categoria (evidencia_categoria_id),
+    KEY idx_ea_tipus (evidencia_tipus_id),
+    CONSTRAINT fk_ea_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ea_project_year FOREIGN KEY (project_academic_year_id) REFERENCES project_academic_years(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ea_objectiu FOREIGN KEY (objectiu_id) REFERENCES objectius_aprenentatge(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ea_categoria FOREIGN KEY (evidencia_categoria_id) REFERENCES evidencies_categoria(id) ON DELETE SET NULL,
+    CONSTRAINT fk_ea_tipus FOREIGN KEY (evidencia_tipus_id) REFERENCES evidencies_tipus(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE classrooms (
