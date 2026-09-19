@@ -295,13 +295,22 @@ resources/views/admin/
 	├── visites.php
 	├── usuaris.php
 	├── classes.php
+	├── grups-alumnes.php
 	├── classroom.php
 	├── projectes.php
 	├── objectius.php
 	└── indicadors.php
 ```
 
-La càrrega dinàmica amb Fetch és una evolució posterior. Primer cal conservar el renderitzat PHP complet com a fallback funcional; després es poden afegir endpoints que retornin partials concrets sense duplicar la lògica de dades ni els controls de seguretat.
+El dashboard admet càrrega parcial amb `GET /admin?section=<secció>` per a les seccions incloses a la llista blanca del controlador. La petició continua passant per l'autenticació i el rol d'administració, reutilitza el mateix context de dades i retorna només el partial sol·licitat. Sense `section`, es conserva el renderitzat PHP complet com a fallback funcional.
+
+El fitxer `public/assets/js/admin-dashboard.js` intercepta els enllaços del menú lateral, demana el partial amb `fetch()`, actualitza `#panell`, manté la URL amb `history.pushState` i gestiona `popstate`. Els enllaços continuen tenint una URL PHP vàlida com a fallback sense JavaScript.
+
+El menú lateral manté separades les seccions `Classes` i `Equips`. Quan es carrega una secció dinàmicament, el panell principal queda desplegat i els botons de col·lapse es re-inicialitzen. Els subblocs interns continuen sent col·lapsables.
+
+Els controls interns del dashboard que viuen a `public/assets/js/scripts.js` s'han d'inicialitzar amb funcions idempotents que acceptin un contenidor (`document` o `#panell`). Després d'una càrrega dinàmica, `admin-dashboard.js` emet l'esdeveniment `admin:section-loaded` i aquests inicialitzadors han de tornar a preparar filtres, ordenació de taules, lightbox, mapa de visites, formularis amb `data-confirm` i controls específics sense duplicar listeners. Els comportaments globals han de ser delegats o marcats amb `dataset`, i els controls de partials carregats per `fetch()` s'han de reenganxar sense modificar la lògica de dades, permisos ni CSRF.
+
+No s'han de permetre noms de fitxer arbitraris ni saltar-se els controls d'accés per retornar partials. Qualsevol nova secció s'ha d'afegir al partial, al menú i a la llista blanca del controlador.
 
 ---
 

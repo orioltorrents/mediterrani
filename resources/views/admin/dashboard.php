@@ -1,7 +1,7 @@
 <?php
 ob_start();
 
-// The controller prepares the complete view context; this file normalizes it and composes the dashboard.
+// El controlador prepara el context complet; aquesta vista el normalitza i compon el dashboard.
 /** @var mixed $csrfToken */
 /** @var mixed $users */
 /** @var mixed $roles */
@@ -34,7 +34,9 @@ ob_start();
 /** @var mixed $indicatorsCount */
 /** @var mixed $geoMapPoints */
 /** @var mixed $classroomMembers */
+/** @var mixed $requestedSection */
 
+// Normalitzem les dades rebudes perquè les vistes puguin treballar sempre amb tipus previsibles.
 $csrfToken = htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8');
 $users = is_array($users ?? null) ? $users : [];
 $roles = is_array($roles ?? null) ? $roles : [];
@@ -50,6 +52,7 @@ $avatarAmbiguousFiles = is_array($userAvatarPreview['ambiguousFiles'] ?? null) ?
 $avatarUnmatchedFiles = is_array($userAvatarPreview['unmatchedFiles'] ?? null) ? $userAvatarPreview['unmatchedFiles'] : [];
 $avatarUsersWithoutPhoto = is_array($userAvatarPreview['usersWithoutPhoto'] ?? null) ? $userAvatarPreview['usersWithoutPhoto'] : [];
 
+// Índexs auxiliars per evitar repetir cerques quan es mostren projectes, rols i edicions.
 $projectNamesById = [];
 foreach ($projects as $project) {
     $projectId = (int) ($project['id'] ?? 0);
@@ -62,6 +65,7 @@ foreach ($roles as $role) {
     $roleIdsByName[(string) ($role['name'] ?? '')] = (int) ($role['id'] ?? 0);
 }
 
+// Dades resumides per als comptadors del resum i per separar alumnat i professorat.
 $studentUsers = array_values(array_filter($users, static fn (array $user): bool => in_array('student', $user['roles'] ?? [], true)));
 $teacherUsers = array_values(array_filter($users, static fn (array $user): bool => in_array('teacher', $user['roles'] ?? [], true)));
 $activeUsersCount = count(array_filter($users, static fn (array $user): bool => (int) ($user['is_active'] ?? 0) === 1));
@@ -77,6 +81,7 @@ $availableTeams = is_array($availableTeams ?? null) ? $availableTeams : [];
 $teamsWithMembers = is_array($teamsWithMembers ?? null) ? $teamsWithMembers : [];
 $studentTeamLabels = [];
 $studentTeamIds = [];
+// Preparem les etiquetes i els identificadors d’equip que necessiten les taules d’alumnes.
 foreach ($studentsWithTeams as $studentTeam) {
     $studentId = (int) ($studentTeam['user_id'] ?? 0);
     $teamId = !empty($studentTeam['team_id']) ? (int) $studentTeam['team_id'] : null;
@@ -92,6 +97,7 @@ foreach ($studentsWithTeams as $studentTeam) {
 }
 $teamsByClass = [];
 $teamSizeCounts = [];
+// Agrupem els equips per classe i comptem la mida de cada equip per al resum.
 foreach ($teamsWithMembers as $team) {
     $classKey = (string) ($team['class_code'] ?? '');
     $teamsByClass[$classKey !== '' ? $classKey : 'Sense classe'][] = $team;
@@ -103,6 +109,7 @@ foreach ($teamsWithMembers as $team) {
 ksort($teamSizeCounts);
 
 $projectAcademicYearsByProject = [];
+// Reorganitzem les edicions i assignacions per poder-les pintar agrupades per projecte.
 foreach ($projectAcademicYears as $edition) {
     $projectAcademicYearsByProject[(int) ($edition['project_id'] ?? 0)][] = $edition;
 }
@@ -119,6 +126,7 @@ foreach ($classes as $class) {
     }
 }
 
+// Aquests helpers renderitzen opcions i caselles reutilitzades pels formularis dels partials.
 $renderRoleChoices = static function (array $selectedRoles = []) use ($roles): void {
     foreach ($roles as $role) {
         $roleName = (string) ($role['name'] ?? '');
@@ -219,7 +227,15 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
         <?php
     }
 };
+
+// En una petició dinàmica retornem només el partial autoritzat i no carreguem el layout complet.
+if (is_string($requestedSection ?? null) && $requestedSection !== '') {
+    include __DIR__ . '/partials/' . $requestedSection . '.php';
+    return;
+}
 ?>
+
+<!-- Estructura principal: navegació lateral i contingut del panell d’administració. -->
 <div class="admin-layout">
     <aside class="admin-layout__sidebar">
         <div class="admin-layout__brand">
@@ -227,37 +243,38 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
             <span>Administració</span>
         </div>
         <nav class="admin-layout__nav">
-            <a class="active" href="#resum">Resum</a>
-            <a href="#visites">Visites</a>
+            <a class="active" href="<?= url('admin') ?>?section=resum" data-dashboard-section="resum">Resum</a>
+            <a href="<?= url('admin') ?>?section=visites" data-dashboard-section="visites">Visites</a>
             <div class="admin-layout__nav-group" data-nav-group>
-                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="usuaris-submenu" aria-expanded="false" aria-controls="usuaris-submenu">
+                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="usuaris-submenu" data-dashboard-section="usuaris" aria-expanded="false" aria-controls="usuaris-submenu">
                     Usuaris
                 </button>
                 <div class="admin-layout__submenu" id="usuaris-submenu" hidden>
-                    <a href="#crear-usuari">Crear usuari</a>
-                    <a href="#importar-usuaris">Importar CSV</a>
-                    <a href="#fotos-usuaris">Fotos</a>
-                    <a href="#alumnes-seccio">Alumnes</a>
-                    <a href="#professors-seccio">Professors</a>
+                    <a href="<?= url('admin') ?>?section=usuaris#crear-usuari" data-dashboard-section="usuaris">Crear usuari</a>
+                    <a href="<?= url('admin') ?>?section=usuaris#importar-usuaris" data-dashboard-section="usuaris">Importar CSV</a>
+                    <a href="<?= url('admin') ?>?section=usuaris#fotos-usuaris" data-dashboard-section="usuaris">Fotos</a>
+                    <a href="<?= url('admin') ?>?section=usuaris#alumnes-seccio" data-dashboard-section="usuaris">Alumnes</a>
+                    <a href="<?= url('admin') ?>?section=usuaris#professors-seccio" data-dashboard-section="usuaris">Professors</a>
                 </div>
             </div>
-            <a href="#classes">Classes</a>
-            <a href="#grups-alumnes">Grups</a>
-            <a href="#classroom">Classroom</a>
-            <a href="#projectes">Projectes</a>
+            <a href="<?= url('admin') ?>?section=classes" data-dashboard-section="classes">Classes</a>
+            <a href="<?= url('admin') ?>?section=grups-alumnes" data-dashboard-section="grups-alumnes">Equips</a>
+            <a href="<?= url('admin') ?>?section=classroom" data-dashboard-section="classroom">Classroom</a>
+            <a href="<?= url('admin') ?>?section=projectes" data-dashboard-section="projectes">Projectes</a>
             <div class="admin-layout__nav-group" data-nav-group>
-                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="objectius-submenu" aria-expanded="false" aria-controls="objectius-submenu">
+                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="objectius-submenu" data-dashboard-section="objectius" aria-expanded="false" aria-controls="objectius-submenu">
                     Objectius
                 </button>
                 <div class="admin-layout__submenu" id="objectius-submenu" hidden>
-                    <a href="#objectius">Objectius</a>
-                    <a href="#indicadors">Indicadors</a>
+                    <a href="<?= url('admin') ?>?section=objectius#objectius" data-dashboard-section="objectius">Objectius</a>
+                    <a href="<?= url('admin') ?>?section=indicadors#indicadors" data-dashboard-section="indicadors">Indicadors</a>
                 </div>
             </div>
         </nav>
     </aside>
 
     <div class="admin-layout__content" id="panell">
+        <!-- Missatges puntuals després d’una acció POST, com imports, resets o actualitzacions. -->
         <?php if (!empty($message)): ?>
             <div class="flash-message <?= htmlspecialchars((string) $messageType, ENT_QUOTES, 'UTF-8') ?>">
                 <?= htmlspecialchars((string) $message, ENT_QUOTES, 'UTF-8') ?>
@@ -295,7 +312,7 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
             </div>
         <?php endif; ?>
 
-        <?php /* Each partial renders one dashboard section and shares this prepared view context. */ ?>
+        <?php /* Cada partial renderitza una secció i comparteix aquest context ja preparat. */ ?>
         <?php include __DIR__ . '/partials/resum.php'; ?>
 
         <?php include __DIR__ . '/partials/visites.php'; ?>
@@ -303,6 +320,8 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
         <?php include __DIR__ . '/partials/usuaris.php'; ?>
 
         <?php include __DIR__ . '/partials/classes.php'; ?>
+
+        <?php include __DIR__ . '/partials/grups-alumnes.php'; ?>
 
         <?php include __DIR__ . '/partials/classroom.php'; ?>
 
@@ -315,6 +334,7 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
     </div>
 </div>
 
+<!-- Lightbox compartit per ampliar les fotografies d’usuaris sense canviar de pàgina. -->
 <div class="avatar-lightbox" id="avatar-lightbox" hidden>
     <div class="avatar-lightbox__overlay" id="avatar-lightbox-overlay"></div>
     <div class="avatar-lightbox__content">

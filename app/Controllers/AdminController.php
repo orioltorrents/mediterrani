@@ -37,14 +37,45 @@ class AdminController
             unset($_SESSION['admin_reset_link']);
         }
 
-        return view('admin.dashboard', $dashboardData + [
+        $viewData = $dashboardData + [
             'title' => 'Dashboard administració',
             'message' => $message,
             'messageType' => $messageType,
             'importSummary' => $importSummary,
             'resetLink' => $resetLink,
             'csrfToken' => (new AuthService())->csrfToken(),
-        ]);
+            'requestedSection' => $this->requestedSection(),
+            'adminDashboard' => true,
+        ];
+
+        if ($viewData['requestedSection'] !== null) {
+            header('Content-Type: text/html; charset=UTF-8');
+            header('X-Content-Type-Options: nosniff');
+        }
+
+        return view('admin.dashboard', $viewData);
+    }
+
+    private function requestedSection(): ?string
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            return null;
+        }
+
+        $section = trim((string) ($_GET['section'] ?? ''));
+        $allowedSections = [
+            'resum',
+            'visites',
+            'usuaris',
+            'classes',
+            'grups-alumnes',
+            'classroom',
+            'projectes',
+            'objectius',
+            'indicadors',
+        ];
+
+        return in_array($section, $allowedSections, true) ? $section : null;
     }
 
     private function handlePost(PDO $pdo): void

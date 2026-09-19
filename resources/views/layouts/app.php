@@ -9,6 +9,8 @@
     $jsPath = dirname(__DIR__, 3) . '/public/assets/js/scripts.js';
     $cssVersion = is_file($cssPath) ? (string) filemtime($cssPath) : '1';
     $jsVersion = is_file($jsPath) ? (string) filemtime($jsPath) : '1';
+    $adminDashboardScriptPath = dirname(__DIR__, 3) . '/public/assets/js/admin-dashboard.js';
+    $adminDashboardScriptVersion = is_file($adminDashboardScriptPath) ? (string) filemtime($adminDashboardScriptPath) : '1';
     ?>
     <link rel="icon" type="image/svg+xml" href="<?= url('assets/favicon.svg') ?>">
     <link rel="stylesheet" href="<?= url('assets/css/styles.css') ?>?v=<?= htmlspecialchars($cssVersion, ENT_QUOTES, 'UTF-8') ?>">
@@ -24,5 +26,8 @@
     <?php include dirname(__DIR__) . '/layouts/footer.php'; ?>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
     <script src="<?= url('assets/js/scripts.js') ?>?v=<?= htmlspecialchars($jsVersion, ENT_QUOTES, 'UTF-8') ?>"></script>
+    <?php if (!empty($adminDashboard)): ?>
+        <script src="<?= url('assets/js/admin-dashboard.js') ?>?v=<?= htmlspecialchars($adminDashboardScriptVersion, ENT_QUOTES, 'UTF-8') ?>"></script>
+    <?php endif; ?>
 </body>
 </html>
