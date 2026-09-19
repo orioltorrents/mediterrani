@@ -13,6 +13,7 @@ if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
 
 require_once dirname(__DIR__) . '/app/Support/Router.php';
 require_once dirname(__DIR__) . '/app/Services/AuthService.php';
+require_once dirname(__DIR__) . '/app/Services/UserActivationService.php';
 require_once dirname(__DIR__) . '/app/Services/ProjectAssetService.php';
 require_once dirname(__DIR__) . '/app/Services/ProjectAccessService.php';
 require_once dirname(__DIR__) . '/app/Services/ProjectAssignmentService.php';
@@ -57,6 +58,7 @@ require_once dirname(__DIR__) . '/app/Controllers/ApiClassroomController.php';
 require_once dirname(__DIR__) . '/app/Controllers/DocumentSyncController.php';
 
 $authService = new AuthService();
+$userActivationService = new UserActivationService(require dirname(__DIR__) . '/config/database.php');
 $projectAccessService = new ProjectAccessService();
 $projectAssignmentService = new ProjectAssignmentService();
 $projectService = new ProjectService();
@@ -67,7 +69,7 @@ $documentService = new DocumentService();
 $projectSectionService = new ProjectSectionService();
 $sitePageService = new SitePageService();
 $controller = new PublicController($projectService, $authService, $assessmentService, $documentService, $projectSectionService, $projectAccessService, $sitePageService);
-$authController = new AuthController($authService);
+$authController = new AuthController($authService, $userActivationService);
 $studentController = new StudentController($authService, $projectAssignmentService);
 $teacherController = new TeacherController($authService, $projectAssignmentService);
 $adminController = new AdminController();
@@ -86,7 +88,7 @@ $projectAcademicYearId = isset($_GET['edicio']) ? max(0, (int) $_GET['edicio']) 
 $currentUser = $authService->user();
 $analyticsService->recordVisit($requestUri, $_SERVER, $currentUser['id'] ?? null);
 
-if ($authService->mustChangePassword() && !in_array($requestUri, ['/canviar-contrasenya', '/logout'], true)) {
+if ($authService->mustChangePassword() && !in_array($requestUri, ['/canviar-contrasenya', '/activar-compte', '/logout'], true)) {
     header('Location: ' . url('canviar-contrasenya'));
     exit;
 }
@@ -123,6 +125,7 @@ $router->any('/logout', static function () use ($authController): void {
     $authController->logout();
 });
 $router->any('/canviar-contrasenya', static fn (): string => $authController->changePassword());
+$router->any('/activar-compte', static fn (): string => $authController->activateAccount());
 
 $router->post('/api/classroom/webhook', static fn (): string => $apiClassroomController->webhook());
 

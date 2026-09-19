@@ -85,6 +85,16 @@ class AdminActionService
             return $result;
         }
 
+        if ($action === 'generate_student_password_reset') {
+            $result = (new AdminUserService($this->pdo))->generateStudentPasswordResetLink($post);
+            $this->auditAdminAction($action, [
+                'target_student_id' => (int) ($post['student_id'] ?? 0),
+                'target_email' => (string) ($result['reset_link']['email'] ?? ''),
+            ]);
+
+            return $result;
+        }
+
         if ($action === 'update_student_team') {
             $result = (new AdminTeamService($this->pdo))->syncStudentTeam($post);
             $this->auditAdminAction($action);

@@ -19,6 +19,7 @@ class AdminDashboardService
         $userRoles = $this->userService->userRoles();
         $classMemberships = $this->userService->classMemberships();
         $classTeachers = $this->userService->classTeachers();
+        $userProjectRoles = $this->userService->projectRoles();
         $projects = $this->projectService->projects();
         $projectAssignments = $this->projectService->projectAssignments();
         $classrooms = $this->classroomService->classrooms();
@@ -42,6 +43,12 @@ class AdminDashboardService
         $roleMap = [];
         foreach ($userRoles as $row) {
             $roleMap[(int) $row['user_id']][] = (string) $row['role_name'];
+        }
+
+        $projectRoleMap = [];
+        foreach ($userProjectRoles as $row) {
+            $roleNames = trim((string) ($row['role_names'] ?? ''));
+            $projectRoleMap[(int) $row['user_id']] = $roleNames === '' ? [] : array_map('trim', explode(',', $roleNames));
         }
 
         $userClassMap = [];
@@ -78,6 +85,7 @@ class AdminDashboardService
             $userId = (int) $user['id'];
             $teacherClasses = $teacherClassMap[$userId] ?? [];
             $user['roles'] = $roleMap[$userId] ?? [];
+            $user['project_roles'] = $projectRoleMap[$userId] ?? [];
             $user['status'] = ((int) $user['is_active'] === 1) ? 'Actiu' : 'Inactiu';
             $user['class_id'] = $userClassMap[$userId] ?? null;
             $user['class_group'] = $userClassGroupMap[$userId] ?? null;

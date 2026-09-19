@@ -19,9 +19,22 @@ class AdminUserService
         $classId = filter_var($input['class_id'] ?? null, FILTER_VALIDATE_INT);
         $resolvedClassId = $classId === null || $classId === false ? null : (int) $classId;
         $teacherClassIds = $this->inputClassIds($input['teacher_class_ids'] ?? []);
+        $roleIds = is_array($roles) ? array_values(array_unique(array_map('intval', $roles))) : [];
 
         if ($name === '' || $email === '' || $password === '') {
             return $this->message('Nom, email i contrasenya són obligatoris.', 'error');
+        }
+
+        if (!is_array($roles) || count($this->validWebRoleIds($roleIds)) !== count($roleIds)) {
+            return $this->message('Els rols seleccionats no són vàlids.', 'error');
+        }
+
+        if ($resolvedClassId !== null && !$this->classExists($resolvedClassId)) {
+            return $this->message('La classe seleccionada no existeix.', 'error');
+        }
+
+        if (!$this->classesExist($teacherClassIds)) {
+            return $this->message('Una o més classes del professor no existeixen.', 'error');
         }
 
         $existing = $this->pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
@@ -33,11 +46,6 @@ class AdminUserService
         $this->pdo->beginTransaction();
 
         try {
-            $roleIds = [];
-            if (!empty($roles) && is_array($roles)) {
-                $roleIds = array_map('intval', $roles);
-            }
-
             $mustChangePassword = $this->roleIdsContainRoleName($roleIds, 'student') ? 1 : 0;
 
             $stmt = $this->pdo->prepare(
@@ -104,6 +112,46 @@ class AdminUserService
         return $this->message('Estat d’usuari actualitzat.', 'success');
     }
 
+    public function generateStudentPasswordResetLink(array $input): array
+    {
+        $userId = filter_var($input['student_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($userId === null || $userId === false || $userId <= 0) {
+            return $this->message('Alumne no vàlid.', 'error');
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT u.id, u.email
+               FROM users u
+              WHERE u.id = :id
+                AND u.is_active = 1
+                AND EXISTS (
+                    SELECT 1
+                      FROM user_web_roles uwr
+                      INNER JOIN web_roles wr ON wr.id = uwr.role_id
+                     WHERE uwr.user_id = u.id
+                       AND wr.name = "student"
+                )
+              LIMIT 1'
+        );
+        $stmt->execute(['id' => (int) $userId]);
+        $student = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($student === false) {
+            return $this->message('No s’ha trobat un alumne actiu amb aquest identificador.', 'error');
+        }
+
+        $token = (new UserActivationService($this->pdo))->createToken((int) $student['id']);
+
+        return [
+            'message' => 'Enllaç de reset generat correctament.',
+            'type' => 'success',
+            'reset_link' => [
+                'email' => (string) $student['email'],
+                'url' => url('activar-compte') . '?token=' . rawurlencode($token),
+            ],
+        ];
+    }
+
     public function updateUser(array $input): array
     {
         $userId = filter_var($input['student_id'] ?? null, FILTER_VALIDATE_INT);
@@ -113,6 +161,10 @@ class AdminUserService
 
         if ($userId === null || $userId === false || $name === '' || $email === '') {
             return $this->message('Nom i email són obligatoris.', 'error');
+        }
+
+        if (!$this->userExists((int) $userId)) {
+            return $this->message('No s’ha trobat l’usuari.', 'error');
         }
 
         $isActive = isset($input['is_active']) ? 1 : 0;
@@ -127,6 +179,24 @@ class AdminUserService
         $teacherClassIds = $this->inputClassIds($input['teacher_class_ids'] ?? []);
         $teamId = filter_var($input['team_id'] ?? null, FILTER_VALIDATE_INT);
         $resolvedTeamId = $teamId === null || $teamId === false || $teamId <= 0 ? null : (int) $teamId;
+
+        if (is_array($roles) && count($this->validWebRoleIds($roleIds)) !== count(array_unique($roleIds))) {
+            return $this->message('Els rols seleccionats no són vàlids.', 'error');
+        }
+
+        $actor = (new AuthService())->actorUser();
+        $actorId = $actor !== null ? (int) ($actor['id'] ?? 0) : 0;
+        if ($actorId === (int) $userId && is_array($roles) && !$this->roleIdsContainRoleName($roleIds, 'admin')) {
+            return $this->message('No et pots treure el rol d’administrador a tu mateix.', 'error');
+        }
+
+        if ($resolvedClassId !== null && !$this->classExists($resolvedClassId)) {
+            return $this->message('La classe seleccionada no existeix.', 'error');
+        }
+
+        if (!$this->classesExist($teacherClassIds)) {
+            return $this->message('Una o més classes del professor no existeixen.', 'error');
+        }
 
         $this->pdo->beginTransaction();
 
@@ -293,10 +363,36 @@ class AdminUserService
 
     private function syncStudentTeamAssignment(int $userId, ?int $teamId, ?int $classId): void
     {
-        $deleteStmt = $this->pdo->prepare('DELETE FROM project_team_members WHERE user_id = :user_id');
-        $deleteStmt->execute(['user_id' => $userId]);
-
         if ($teamId === null) {
+            $editionStmt = $this->pdo->prepare(
+                'SELECT DISTINCT pt.project_academic_year_id
+                   FROM project_team_members ptm
+                   INNER JOIN project_teams pt ON pt.id = ptm.project_team_id
+                  WHERE ptm.user_id = :user_id'
+            );
+            $editionStmt->execute(['user_id' => $userId]);
+            $editionIds = array_map('intval', $editionStmt->fetchAll(PDO::FETCH_COLUMN));
+
+            if (count($editionIds) > 1) {
+                throw new RuntimeException('Cal indicar el projecte abans de treure una assignació d’equip.');
+            }
+
+            if ($editionIds === []) {
+                return;
+            }
+
+            $deleteStmt = $this->pdo->prepare(
+                'DELETE ptm
+                   FROM project_team_members ptm
+                   INNER JOIN project_teams pt ON pt.id = ptm.project_team_id
+                  WHERE ptm.user_id = :user_id
+                    AND pt.project_academic_year_id = :project_academic_year_id'
+            );
+            $deleteStmt->execute([
+                'user_id' => $userId,
+                'project_academic_year_id' => $editionIds[0],
+            ]);
+
             return;
         }
 
@@ -307,6 +403,25 @@ class AdminUserService
         if (!$this->teamBelongsToClass($teamId, $classId)) {
             throw new RuntimeException('Aquest equip no pertany a la classe de l’alumne.');
         }
+
+        $teamEditionStmt = $this->pdo->prepare('SELECT project_academic_year_id FROM project_teams WHERE id = :team_id LIMIT 1');
+        $teamEditionStmt->execute(['team_id' => $teamId]);
+        $projectAcademicYearId = $teamEditionStmt->fetchColumn();
+        if ($projectAcademicYearId === false) {
+            throw new RuntimeException('No s’ha trobat l’equip seleccionat.');
+        }
+
+        $deleteStmt = $this->pdo->prepare(
+            'DELETE ptm
+               FROM project_team_members ptm
+               INNER JOIN project_teams pt ON pt.id = ptm.project_team_id
+              WHERE ptm.user_id = :user_id
+                AND pt.project_academic_year_id = :project_academic_year_id'
+        );
+        $deleteStmt->execute([
+            'user_id' => $userId,
+            'project_academic_year_id' => (int) $projectAcademicYearId,
+        ]);
 
         $insertStmt = $this->pdo->prepare(
             'INSERT INTO project_team_members (project_team_id, user_id, class_id, created_at)
@@ -347,6 +462,47 @@ class AdminUserService
         $classCode = trim((string) ($team['class_code'] ?? ''));
 
         return $teamClassGroup !== '' && $classCode !== '' && $teamClassGroup === $classCode;
+    }
+
+    private function userExists(int $userId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $userId]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    private function classExists(int $classId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM classes WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $classId]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    private function classesExist(array $classIds): bool
+    {
+        foreach ($classIds as $classId) {
+            if (!$this->classExists((int) $classId)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function validWebRoleIds(array $roleIds): array
+    {
+        if ($roleIds === []) {
+            return [];
+        }
+
+        $roleIds = array_values(array_unique(array_filter($roleIds, static fn (int $roleId): bool => $roleId > 0)));
+        $placeholders = implode(',', array_fill(0, count($roleIds), '?'));
+        $stmt = $this->pdo->prepare("SELECT id FROM web_roles WHERE id IN ($placeholders)");
+        $stmt->execute($roleIds);
+
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
     private function roleIdsContainRoleName(array $roleIds, string $roleName): bool

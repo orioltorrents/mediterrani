@@ -7,7 +7,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS student_indicador_assoliment, indicadors_assoliment, project_academic_year_objectius,
     project_team_member_roles, project_team_members, project_teams, project_sections, project_class_assignments,
     project_academic_years, project_translations, project_roles, classroom_members, classrooms, class_member_history,
-    class_members, class_teachers, classes, academic_years, site_visits, login_attempts, user_web_roles,
+    class_members, class_teachers, classes, academic_years, site_visits, login_attempts, user_activation_tokens, user_web_roles,
     web_roles, languages, users;
 
 CREATE TABLE users (
@@ -26,6 +26,19 @@ CREATE TABLE users (
     article VARCHAR(10) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE user_activation_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_activation_token_hash (token_hash),
+    KEY idx_user_activation_tokens_user (user_id),
+    KEY idx_user_activation_tokens_expiration (expires_at, used_at),
+    CONSTRAINT fk_user_activation_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE languages (

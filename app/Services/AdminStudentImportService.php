@@ -26,10 +26,16 @@ class AdminStudentImportService
         }
 
         $normalizedHeaders = array_map(fn ($header): string => $this->normalizeHeader((string) $header), $headers);
+        if (array_intersect($normalizedHeaders, ['password', 'users_password']) !== []) {
+            fclose($handle);
+
+            return $this->result('El CSV no pot contenir contrasenyes. Deixa que Mediterrani generi l’enllaç d’activació.', 'error');
+        }
+
         $created = 0;
         $updated = 0;
         $teamAssignments = 0;
-        $generatedPasswords = [];
+        $activationLinks = [];
         $errors = [];
         $lineNumber = 1;
 
@@ -47,7 +53,6 @@ class AdminStudentImportService
             $name = trim($data['users_name'] ?? $data['name'] ?? $data['nom'] ?? '');
             $surname = trim($data['users_surname'] ?? $data['surname'] ?? $data['cognoms'] ?? '');
             $email = strtolower(trim($data['users_email'] ?? $data['email'] ?? ''));
-            $password = trim($data['users_password'] ?? $data['password'] ?? '');
             $classIdValue = trim($data['class_id'] ?? '');
             $classCode = trim($data['classes_class_code'] ?? $data['class_code'] ?? $data['classid'] ?? '');
             $className = trim($data['class'] ?? $data['classe'] ?? $data['class_name'] ?? $data['grup_classe'] ?? $data['grup_classes'] ?? '');
@@ -68,17 +73,20 @@ class AdminStudentImportService
             $existingUserStmt = $this->pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
             $existingUserStmt->execute(['email' => $email]);
             $existingUser = $existingUserStmt->fetch(PDO::FETCH_ASSOC);
-            $generatedPassword = null;
-
-            if ($existingUser === false && $password === '') {
-                $generatedPassword = $this->generateTemporaryPassword();
-                $password = $generatedPassword;
-            }
+            $password = $existingUser === false ? $this->generateTemporaryPassword() : '';
 
             $this->pdo->beginTransaction();
 
             try {
                 $userId = $this->findOrCreateUser($name, $surname, $email, $password);
+                if ($existingUser === false) {
+                    $activationToken = (new UserActivationService($this->pdo))->createToken($userId);
+                    $activationLinks[] = [
+                        'email' => $email,
+                        'url' => url('activar-compte') . '?token=' . rawurlencode($activationToken),
+                    ];
+                }
+
                 if ($isActive !== null) {
                     $this->updateUserActiveState($userId, $isActive);
                 }
@@ -123,12 +131,6 @@ class AdminStudentImportService
 
                 if ($existingUser === false) {
                     $created++;
-                    if ($generatedPassword !== null) {
-                        $generatedPasswords[] = [
-                            'email' => $email,
-                            'password' => $generatedPassword,
-                        ];
-                    }
                 } else {
                     $updated++;
                 }
@@ -148,13 +150,13 @@ class AdminStudentImportService
         }
 
         return $this->result(
-            'Importació completada: ' . $created . ' usuaris creats, ' . $updated . ' actualitzats, ' . $teamAssignments . ' equips sincronitzats i ' . count($generatedPasswords) . ' contrasenyes temporals generades.',
+            'Importació completada: ' . $created . ' usuaris creats, ' . $updated . ' actualitzats, ' . $teamAssignments . ' equips sincronitzats i ' . count($activationLinks) . ' enllaços d’activació generats.',
             'success',
             [
                 'created' => $created,
                 'updated' => $updated,
                 'team_assignments' => $teamAssignments,
-                'generated_passwords' => $generatedPasswords,
+                    'activation_links' => $activationLinks,
             ]
         );
     }
@@ -209,10 +211,12 @@ class AdminStudentImportService
 
         $insertStmt = $this->pdo->prepare('INSERT INTO user_web_roles (user_id, role_id) VALUES (:user_id, :role_id)');
         foreach ($roles as $roleName) {
-            $roleId = $this->findOrCreateRole($roleName);
-            if ($roleId !== null) {
-                $insertStmt->execute(['user_id' => $userId, 'role_id' => $roleId]);
+            $roleId = $this->findRole($roleName);
+            if ($roleId === null) {
+                throw new RuntimeException('No existeix el rol web `' . $roleName . '`; revisa el catàleg de rols abans d’importar.');
             }
+
+            $insertStmt->execute(['user_id' => $userId, 'role_id' => $roleId]);
         }
     }
 
@@ -713,7 +717,7 @@ class AdminStudentImportService
         return $matchedRoles !== [] ? $matchedRoles : null;
     }
 
-    private function findOrCreateRole(string $roleName): ?int
+    private function findRole(string $roleName): ?int
     {
         $normalized = trim(strtolower($roleName));
         if ($normalized === '') {
@@ -723,14 +727,8 @@ class AdminStudentImportService
         $existingStmt = $this->pdo->prepare('SELECT id FROM web_roles WHERE LOWER(name) = :name LIMIT 1');
         $existingStmt->execute(['name' => $normalized]);
         $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
-        if ($existing !== false) {
-            return (int) $existing['id'];
-        }
 
-        $insertStmt = $this->pdo->prepare('INSERT INTO web_roles (name, created_at) VALUES (:name, NOW())');
-        $insertStmt->execute(['name' => $normalized]);
-
-        return (int) $this->pdo->lastInsertId();
+        return $existing !== false ? (int) $existing['id'] : null;
     }
 
     private function normalizeAcademicYearLabel(string $academicYearName): string

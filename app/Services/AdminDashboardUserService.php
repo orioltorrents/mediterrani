@@ -69,6 +69,30 @@ class AdminDashboardUserService
         }
     }
 
+    public function projectRoles(): array
+    {
+        try {
+            $stmt = $this->pdo->query(
+                'SELECT roles.user_id, GROUP_CONCAT(DISTINCT roles.role_name ORDER BY roles.role_name SEPARATOR ", ") AS role_names
+                   FROM (
+                       SELECT ptm.user_id, pr.name AS role_name
+                         FROM project_team_members ptm
+                         INNER JOIN project_roles pr ON pr.id = ptm.project_role_id
+                       UNION
+                       SELECT ptm.user_id, pr.name AS role_name
+                         FROM project_team_members ptm
+                         INNER JOIN project_team_member_roles ptmr ON ptmr.project_team_member_id = ptm.id
+                         INNER JOIN project_roles pr ON pr.id = ptmr.project_role_id
+                   ) roles
+                  GROUP BY roles.user_id'
+            );
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
     public function buildGeoMapPoints(array $geoStats): array
     {
         $points = [];

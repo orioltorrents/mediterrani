@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 class AuthController
 {
-    public function __construct(private AuthService $authService)
+    public function __construct(
+        private AuthService $authService,
+        private UserActivationService $userActivationService,
+    )
     {
     }
 
@@ -69,6 +72,35 @@ class AuthController
             'title' => 'Canviar contrasenya',
             'csrfToken' => $this->authService->csrfToken(),
             'error' => null,
+        ]);
+    }
+
+    public function activateAccount(): string
+    {
+        $token = trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
+        $error = null;
+        $success = false;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->authService->verifyCsrfToken((string) ($_POST['csrf_token'] ?? ''))) {
+                $error = 'La sessió del formulari ha caducat. Torna-ho a provar.';
+            } else {
+                $error = $this->userActivationService->activate(
+                    $token,
+                    (string) ($_POST['password'] ?? ''),
+                    (string) ($_POST['password_confirmation'] ?? '')
+                );
+                $success = $error === null;
+            }
+        }
+
+        return view('auth.activate-account', [
+            'title' => 'Activar compte',
+            'csrfToken' => $this->authService->csrfToken(),
+            'token' => $token,
+            'isValid' => $success || $this->userActivationService->isValid($token),
+            'error' => $error,
+            'success' => $success,
         ]);
     }
 

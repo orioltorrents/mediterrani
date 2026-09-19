@@ -57,7 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 weight: 2,
             }).addTo(geoMap);
 
-            marker.bindPopup(`<strong>${point.country_code || ''}</strong><br>${point.region || 'Desconegut'}<br>${total} visites`);
+            const popup = document.createElement('div');
+            const country = document.createElement('strong');
+            const region = document.createElement('span');
+            const visits = document.createElement('span');
+            const countryCode = String(point.country_code || '');
+            const regionName = String(point.region || 'Desconegut');
+
+            country.textContent = countryCode;
+            region.textContent = regionName;
+            visits.textContent = `${total} visites`;
+            popup.append(country, document.createElement('br'), region, document.createElement('br'), visits);
+
+            marker.bindPopup(popup);
             bounds.push([lat, lng]);
         });
 
@@ -98,9 +110,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const parentRow = button.closest('tr');
             if (parentRow?.hidden) return;
 
+            let collapsible = row.parentElement?.closest('.admin-collapsible, .collapsible-card');
+            while (collapsible) {
+                collapsible.classList.remove('is-collapsed');
+                const collapseButton = collapsible.querySelector(':scope > .admin-panel__header .collapse-toggle, :scope > .admin-team-class__header .collapse-toggle');
+                if (collapseButton) collapseButton.textContent = 'Amagar';
+                collapsible = collapsible.parentElement?.closest('.admin-collapsible, .collapsible-card');
+            }
+
             const isOpen = row.classList.contains('open');
             document.querySelectorAll('.student-editor-row.open').forEach((r) => r.classList.remove('open'));
             if (!isOpen) row.classList.add('open');
+            if (!isOpen) {
+                window.setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'center' }), 40);
+            }
         });
     });
 

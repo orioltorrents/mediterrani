@@ -88,15 +88,24 @@ class AdminProjectService
             return $this->message('Estat de l’assignació no vàlid.', 'error');
         }
 
+        $classStmt = $this->pdo->prepare('SELECT id, academic_year_id FROM classes WHERE id = :id LIMIT 1');
+        $classStmt->execute(['id' => (int) $classId]);
+        $class = $classStmt->fetch(PDO::FETCH_ASSOC);
+        if ($class === false) {
+            return $this->message('No s’ha trobat la classe seleccionada.', 'error');
+        }
+
         $projectAcademicYearStmt = $this->pdo->prepare(
             'SELECT pay.id
              FROM project_academic_years pay
-             INNER JOIN academic_years ay ON ay.id = pay.academic_year_id
              WHERE pay.project_id = :project_id
-             ORDER BY ay.id DESC
+               AND pay.academic_year_id = :academic_year_id
              LIMIT 1'
         );
-        $projectAcademicYearStmt->execute(['project_id' => (int) $projectId]);
+        $projectAcademicYearStmt->execute([
+            'project_id' => (int) $projectId,
+            'academic_year_id' => (int) $class['academic_year_id'],
+        ]);
         $projectAcademicYearId = $projectAcademicYearStmt->fetchColumn();
 
         if ($projectAcademicYearId === false) {

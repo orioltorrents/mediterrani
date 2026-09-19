@@ -42,6 +42,10 @@ class AdminObjectivesService
         if ($codi === '' || $titol === '') {
             return $this->message('El codi i el títol de l’objectiu són obligatoris.', 'error');
         }
+        
+        if ($resolvedProjectId !== null && !$this->projectExists($resolvedProjectId)) {
+            return $this->message('El projecte seleccionat no existeix.', 'error');
+        }
 
         try {
             $stmt = $this->pdo->prepare(
@@ -70,6 +74,15 @@ class AdminObjectivesService
 
         if ($objectiveId === null || $objectiveId === false || $codi === '' || $titol === '') {
             return $this->message('Dades d’objectiu no vàlides.', 'error');
+        }
+        
+        $currentObjective = $this->objective($objectiveId);
+        if ($currentObjective === null) {
+            return $this->message('No s’ha trobat l’objectiu.', 'error');
+        }
+        
+        if ($resolvedProjectId !== null && !$this->projectExists($resolvedProjectId)) {
+            return $this->message('El projecte seleccionat no existeix.', 'error');
         }
 
         try {
@@ -182,6 +195,10 @@ class AdminObjectivesService
         if ($objectiveId === null || $objectiveId === false || !is_array($descriptors)) {
             return $this->message('Dades d’indicadors no vàlides.', 'error');
         }
+        
+        if ($this->objective($objectiveId) === null) {
+            return $this->message('No s’ha trobat l’objectiu associat als indicadors.', 'error');
+        }
 
         $this->pdo->beginTransaction();
 
@@ -213,5 +230,30 @@ class AdminObjectivesService
 
             return $this->message('No s’han pogut actualitzar els indicadors.', 'error');
         }
+    }
+
+    private function message(string $message, string $type): array
+    {
+        return [
+            'message' => $message,
+            'type' => $type,
+        ];
+    }
+
+    private function projectExists(int $projectId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM projects WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $projectId]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    private function objective(int $objectiveId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, project_id FROM objectius_aprenentatge WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $objectiveId]);
+        $objective = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $objective === false ? null : $objective;
     }
 }

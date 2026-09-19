@@ -14,7 +14,8 @@ class AdminTeamService
             $stmt = $this->pdo->query(
                 'SELECT u.id AS user_id, u.name, u.surname, u.email, u.avatar_url, u.is_active,
                         c.id AS class_id, c.class_name, c.class_code,
-                        pt.id AS team_id, pt.team_code, pt.team_name, pt.class_group
+                        pt.id AS team_id, pt.team_code, pt.team_name, pt.class_group,
+                        pay.id AS project_academic_year_id
                  FROM users u
                  INNER JOIN user_web_roles uwr ON uwr.user_id = u.id
                  INNER JOIN web_roles wr ON wr.id = uwr.role_id AND wr.name = "student"
@@ -22,7 +23,8 @@ class AdminTeamService
                  LEFT JOIN classes c ON c.id = cm.class_id
                  LEFT JOIN project_team_members ptm ON ptm.user_id = u.id
                  LEFT JOIN project_teams pt ON pt.id = ptm.project_team_id
-                 GROUP BY u.id, u.name, u.surname, u.email, u.avatar_url, u.is_active, c.id, c.class_name, c.class_code, pt.id, pt.team_code, pt.team_name, pt.class_group
+                 LEFT JOIN project_academic_years pay ON pay.id = pt.project_academic_year_id
+                 GROUP BY u.id, u.name, u.surname, u.email, u.avatar_url, u.is_active, c.id, c.class_name, c.class_code, pt.id, pt.team_code, pt.team_name, pt.class_group, pay.id
                  ORDER BY c.class_code, u.surname, u.name'
             );
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -56,6 +58,7 @@ class AdminTeamService
             $stmt = $this->pdo->query(
                 'SELECT pt.id, pt.team_code, pt.team_name, pt.class_id,
                         c.class_code, p.name AS project_name, ay.name AS academic_year_name,
+                        pay.id AS project_academic_year_id,
                         u.id AS user_id, u.name, u.surname, u.email, u.avatar_url
                    FROM project_teams pt
                    INNER JOIN project_academic_years pay ON pay.id = pt.project_academic_year_id
@@ -77,6 +80,7 @@ class AdminTeamService
                         'team_name' => (string) ($row['team_name'] ?? ''),
                         'class_id' => !empty($row['class_id']) ? (int) $row['class_id'] : null,
                         'class_code' => (string) ($row['class_code'] ?? ''),
+                        'project_academic_year_id' => (int) ($row['project_academic_year_id'] ?? 0),
                         'project_name' => (string) $row['project_name'],
                         'academic_year_name' => (string) $row['academic_year_name'],
                         'members' => [],
@@ -104,6 +108,10 @@ class AdminTeamService
         $userId = filter_var($input['user_id'] ?? null, FILTER_VALIDATE_INT);
         $teamId = filter_var($input['team_id'] ?? null, FILTER_VALIDATE_INT);
         $resolvedTeamId = $teamId === null || $teamId === false || $teamId <= 0 ? null : (int) $teamId;
+        $academicYearId = filter_var($input['project_academic_year_id'] ?? null, FILTER_VALIDATE_INT);
+        $resolvedAcademicYearId = $academicYearId === null || $academicYearId === false || $academicYearId <= 0
+            ? null
+            : (int) $academicYearId;
 
         if ($userId === null || $userId === false) {
             return $this->message('Usuari no vàlid.', 'error');
@@ -112,10 +120,6 @@ class AdminTeamService
         $this->pdo->beginTransaction();
 
         try {
-            // Remove existing team memberships for this student
-            $deleteStmt = $this->pdo->prepare('DELETE FROM project_team_members WHERE user_id = :user_id');
-            $deleteStmt->execute(['user_id' => (int) $userId]);
-
             $studentClass = $this->studentClass((int) $userId);
             $resolvedClassId = $studentClass !== null ? (int) $studentClass['class_id'] : null;
 
@@ -133,6 +137,35 @@ class AdminTeamService
                     return $this->message('Aquest equip no pertany a la classe de l’alumne.', 'error');
                 }
 
+                $teamAcademicYearId = (int) ($team['project_academic_year_id'] ?? 0);
+                if ($resolvedAcademicYearId !== null && $resolvedAcademicYearId !== $teamAcademicYearId) {
+                    $this->pdo->rollBack();
+
+                    return $this->message('L’equip seleccionat pertany a una altra edició del projecte.', 'error');
+                }
+
+                $resolvedAcademicYearId = $teamAcademicYearId > 0 ? $teamAcademicYearId : null;
+            }
+
+            if ($resolvedAcademicYearId === null) {
+                $this->pdo->rollBack();
+
+                return $this->message('No s’ha pogut determinar l’edició del projecte.', 'error');
+            }
+
+            $deleteStmt = $this->pdo->prepare(
+                'DELETE ptm
+                   FROM project_team_members ptm
+                   INNER JOIN project_teams pt ON pt.id = ptm.project_team_id
+                  WHERE ptm.user_id = :user_id
+                    AND pt.project_academic_year_id = :project_academic_year_id'
+            );
+            $deleteStmt->execute([
+                'user_id' => (int) $userId,
+                'project_academic_year_id' => $resolvedAcademicYearId,
+            ]);
+
+            if ($resolvedTeamId !== null) {
                 $insertStmt = $this->pdo->prepare(
                     'INSERT INTO project_team_members (project_team_id, user_id, class_id, created_at)
                      VALUES (:team_id, :user_id, :class_id, NOW())'
@@ -174,7 +207,7 @@ class AdminTeamService
     private function teamClass(int $teamId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT pt.id, pt.class_id, pt.class_group, c.class_code
+            'SELECT pt.id, pt.class_id, pt.class_group, c.class_code, pt.project_academic_year_id
                FROM project_teams pt
                LEFT JOIN classes c ON c.id = pt.class_id
               WHERE pt.id = :team_id

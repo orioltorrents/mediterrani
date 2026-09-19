@@ -8,6 +8,7 @@ $editableUserIsStudent = in_array('student', $editableUserRoles, true);
 $editableUserClassId = isset($editableUser['class_id']) ? (int) $editableUser['class_id'] : null;
 $editableUserClassCode = (string) ($editableUser['class_code'] ?? '');
 $editableUserTeamId = isset($studentTeamIds[$editableUserId]) ? (int) $studentTeamIds[$editableUserId] : null;
+$editableUserProjectRoles = is_array($editableUser['project_roles'] ?? null) ? $editableUser['project_roles'] : [];
 ?>
 <form class="admin-form admin-form--compact" method="post" action="<?= url('admin') ?>">
     <input type="hidden" name="action" value="update_student">
@@ -22,6 +23,7 @@ $editableUserTeamId = isset($studentTeamIds[$editableUserId]) ? (int) $studentTe
         <?php endif; ?>
         <?php if ($editableUserIsStudent && isset($renderTeamOptions) && is_callable($renderTeamOptions)): ?>
             <label>Equip / Grup<select name="team_id"><?php $renderTeamOptions($editableUserTeamId, $editableUserClassId, $editableUserClassCode); ?></select></label>
+            <label>Rol de projecte<input type="text" value="<?= htmlspecialchars($editableUserProjectRoles !== [] ? implode(', ', $editableUserProjectRoles) : 'Sense rol assignat', ENT_QUOTES, 'UTF-8') ?>" readonly></label>
         <?php endif; ?>
     </div>
     <?php if ($editableUserIsTeacher): ?>

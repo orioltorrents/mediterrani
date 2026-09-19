@@ -151,41 +151,53 @@ password_hash = NULL
 
 ### Contrasenyes temporals d'alumnat
 
-Quan s'importen alumnes des de CSV, no s'ha d'utilitzar una contrasenya inicial comuna per a tot el grup. El criteri recomanat és:
+Quan s'importen alumnes des de CSV, el fitxer no ha de contenir cap contrasenya. El criteri actual és:
 
-- una contrasenya temporal única per alumne;
+- generar una contrasenya aleatòria només per construir l'hash inicial;
 - `users.must_change_password = 1` en crear l'usuari;
-- canvi obligatori a `/canviar-contrasenya` en el primer inici de sessió;
+- crear un token d'activació d'un sol ús amb expiració de 48 hores;
+- permetre que l'alumne defineixi la seva contrasenya a `/activar-compte`;
 - guardar només el hash amb `password_hash()`, mai la contrasenya en text pla.
 
 Flux actual de l'importador d'alumnes:
 
-- si el CSV informa la columna `password`, aquesta contrasenya temporal s'utilitza per crear el hash inicial;
-- si el CSV deixa `password` buit per a un usuari nou, el sistema genera una contrasenya temporal única;
-- les contrasenyes generades només es mostren al resum immediat de la importació perquè es puguin comunicar de manera controlada;
+- si el CSV conté una columna `password` o `users.password`, la importació es rebutja;
+- per a cada usuari nou, el sistema genera una contrasenya aleatòria i en desa només l'hash;
+- el resum de la importació mostra un enllaç d'activació, no una contrasenya;
 - si l'usuari ja existeix, una importació normal no li canvia la contrasenya.
 
-Flux recomanat amb Google Apps Script:
+Flux actual d'activació:
 
 ```text
-GAS genera una contrasenya temporal única per alumne
+L'admin importa el CSV sense contrasenyes
         ↓
-GAS crea el CSV amb email, name, surname, password i la resta de camps necessaris
+Mediterrani crea l'usuari amb hash aleatori i `must_change_password = 1`
         ↓
-L'admin importa el CSV a Mediterrani
+Mediterrani crea un token hashat amb expiració de 48 hores
         ↓
-Mediterrani desa només password_hash i must_change_password = 1
+L'admin comparteix l'enllaç d'activació de manera controlada
         ↓
-GAS envia a cada alumne el seu email, contrasenya temporal i URL de login
+L'alumne obre `/activar-compte` i defineix una contrasenya
         ↓
-L'alumne inicia sessió i canvia obligatòriament la contrasenya
+El token queda marcat com a utilitzat i no es pot reutilitzar
         ↓
-Mediterrani actualitza password_hash, must_change_password = 0 i password_changed_at
+L'alumne inicia sessió amb la seva nova contrasenya
 ```
 
-Aquest flux permet que GAS conegui les contrasenyes temporals només en el moment d'enviar-les, mentre que l'aplicació conserva únicament el hash. Després del canvi obligatori, la contrasenya real de l'alumne no queda visible ni recuperable en text pla.
+Aquest flux evita transportar contrasenyes inicials dins del CSV. La taula `user_activation_tokens` només guarda el hash del token, la data d'expiració i la data d'ús. El token original només apareix a l'enllaç d'activació generat en el resum immediat de la importació.
 
-Si es perd una contrasenya temporal abans del primer accés, no s'ha de recuperar de la base de dades. Cal generar-ne una de nova mitjançant un flux de reset o reimportació controlada amb una nova columna `password`.
+Si es perd l'enllaç abans de l'activació, no s'ha de recuperar cap contrasenya ni token de la base de dades. Cal generar un nou enllaç mitjançant un flux administratiu de reemissió.
+
+### Reset administratiu
+
+El panell d'administració permet generar un nou enllaç de reset per a un alumne actiu des de la llista d'alumnes.
+
+- l'acció valida server-side que l'identificador correspon a un alumne actiu;
+- els tokens d'activació anteriors encara no utilitzats queden invalidats;
+- el dashboard mostra l'enllaç només després de l'acció i el conserva temporalment a la sessió;
+- l'alumne defineix una contrasenya nova a `/activar-compte`;
+- el reset queda registrat a l'auditoria administrativa;
+- l'administrador no veu ni estableix directament la contrasenya final.
 
 ---
 
@@ -249,6 +261,44 @@ El sistema regenera l'identificador de sessió en iniciar sessió. Hi ha un idle
 El token CSRF està implementat al formulari de login i als formularis POST sensibles del panell d'administració.
 
 Cada formulari que modifica dades ha d'enviar `csrf_token` i el controlador l'ha de validar abans d'executar l'acció. Les accions admin sense token vàlid han de quedar bloquejades i registrades a auditoria.
+
+---
+
+## Autorització server-side de les accions administratives
+
+El rol `admin` permet accedir al panell, però no converteix automàticament qualsevol ID rebut del navegador en una dada vàlida. El CSRF només valida l'origen de la petició; no valida el recurs ni les relacions que es volen modificar.
+
+Per aquest motiu, cada servei administratiu ha de validar també:
+
+- que l'usuari, projecte, classe, edició, equip o objectiu existeix;
+- que els IDs relacionats pertanyen al context esperat;
+- que els valors rebuts pertanyen al catàleg permès, com els rols web o els estats;
+- que una operació no modifica dades fora de l'edició o projecte seleccionat;
+- que una acció privilegiada deixa una entrada d'auditoria.
+
+### Regles actuals del panell admin
+
+- `/admin` exigeix rol `admin` abans de carregar el dashboard o processar accions POST.
+- `AdminActionService` només executa accions conegudes i delega cada operació al servei corresponent.
+- La impersonació només permet seleccionar un usuari actiu que tingui el rol `student`.
+- Els canvis d'equip filtren les eliminacions per `project_academic_year_id`; canviar un equip no pot eliminar les pertinences de l'alumne en altres projectes o edicions.
+- Un canvi d'equip no pot creuar una edició acadèmica diferent de la que origina el formulari.
+- Les assignacions projecte-classe resolen l'edició a partir de l'any acadèmic de la classe, i no a partir de l'última edició disponible del projecte.
+- Les actualitzacions d'usuaris validen l'existència dels rols web i de les classes rebudes.
+- Un administrador no es pot eliminar el seu propi rol `admin` des del formulari d'edició d'usuaris.
+- Els objectius i els indicadors només es poden modificar si l'objectiu i el projecte existeixen.
+- La importació d'usuaris no crea rols web arbitraris: un rol desconegut fa fallar la fila d'importació.
+
+Quan una operació treballa amb una relació contextual, la consulta d'escriptura ha d'incloure aquesta relació en el `WHERE` o validar-la abans de fer la modificació. No és suficient validar que l'ID sigui un enter ni confiar en un camp ocult del formulari.
+
+Les proves d'autorització han de cobrir com a mínim:
+
+- un alumne amb equips en dues edicions diferents;
+- un canvi d'equip amb un `team_id` d'una altra edició;
+- un `objective_id`, `project_id` o `class_id` inexistent;
+- un CSV amb un rol web desconegut;
+- un administrador que intenta eliminar-se el seu propi rol `admin`;
+- una petició amb CSRF vàlid però amb IDs manipulats.
 
 ---
 

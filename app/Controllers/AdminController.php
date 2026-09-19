@@ -8,6 +8,8 @@ class AdminController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->handlePost($pdo);
+            header('Location: ' . url('admin'));
+            exit;
         }
 
         $dashboardData = (new AdminDashboardService(
@@ -21,6 +23,7 @@ class AdminController
         $message = $_SESSION['admin_message'] ?? null;
         $messageType = $_SESSION['admin_message_type'] ?? 'success';
         $importSummary = $_SESSION['admin_import_summary'] ?? null;
+        $resetLink = $_SESSION['admin_reset_link'] ?? null;
 
         if ($message !== null) {
             unset($_SESSION['admin_message'], $_SESSION['admin_message_type']);
@@ -30,11 +33,16 @@ class AdminController
             unset($_SESSION['admin_import_summary']);
         }
 
+        if ($resetLink !== null) {
+            unset($_SESSION['admin_reset_link']);
+        }
+
         return view('admin.dashboard', $dashboardData + [
             'title' => 'Dashboard administració',
             'message' => $message,
             'messageType' => $messageType,
             'importSummary' => $importSummary,
+            'resetLink' => $resetLink,
             'csrfToken' => (new AuthService())->csrfToken(),
         ]);
     }
@@ -55,6 +63,10 @@ class AdminController
         $result = $adminActionService->handle($action, $_POST, $_FILES);
         if (!empty($result['summary'])) {
             $_SESSION['admin_import_summary'] = $result['summary'];
+        }
+
+        if (!empty($result['reset_link'])) {
+            $_SESSION['admin_reset_link'] = $result['reset_link'];
         }
 
         $this->setMessage((string) $result['message'], (string) $result['type']);

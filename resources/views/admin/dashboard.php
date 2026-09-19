@@ -200,7 +200,6 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
                     Usuaris
                 </button>
                 <div class="admin-layout__submenu" id="usuaris-submenu" hidden>
-                    <a href="#usuaris">Resum usuaris</a>
                     <a href="#crear-usuari">Crear usuari</a>
                     <a href="#importar-usuaris">Importar CSV</a>
                     <a href="#fotos-usuaris">Fotos</a>
@@ -231,19 +230,28 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
             </div>
         <?php endif; ?>
 
+        <?php if (is_array($resetLink ?? null) && $resetLink !== []): ?>
+            <div class="card admin-panel">
+                <h2>Enllaç de reset de contrasenya</h2>
+                <p class="muted">Comparteix aquest enllaç només amb l’alumne. Caduca en 48 hores i només es pot utilitzar una vegada.</p>
+                <p><strong><?= htmlspecialchars((string) ($resetLink['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong></p>
+                <p><a href="<?= htmlspecialchars((string) ($resetLink['url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string) ($resetLink['url'] ?? ''), ENT_QUOTES, 'UTF-8') ?></a></p>
+            </div>
+        <?php endif; ?>
+
         <?php if (is_array($importSummary ?? null) && $importSummary !== []): ?>
             <div class="card admin-panel">
                 <h2>Resultat de la importació</h2>
                 <p class="muted">Creats: <?= (int) ($importSummary['created'] ?? 0) ?> · Actualitzats: <?= (int) ($importSummary['updated'] ?? 0) ?></p>
-                <?php if (!empty($importSummary['generated_passwords'])): ?>
+                <?php if (!empty($importSummary['activation_links'])): ?>
                     <div class="admin-table__wrapper">
                         <table class="admin-table admin-table--compact">
-                            <thead><tr><th>Email</th><th>Contrasenya temporal</th></tr></thead>
+                            <thead><tr><th>Email</th><th>Enllaç d’activació</th></tr></thead>
                             <tbody>
-                                <?php foreach ($importSummary['generated_passwords'] as $generated): ?>
+                                <?php foreach ($importSummary['activation_links'] as $activation): ?>
                                     <tr>
-                                        <td><?= htmlspecialchars((string) ($generated['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td><code><?= htmlspecialchars((string) ($generated['password'] ?? ''), ENT_QUOTES, 'UTF-8') ?></code></td>
+                                        <td><?= htmlspecialchars((string) ($activation['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><a href="<?= htmlspecialchars((string) ($activation['url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">Activar compte</a></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -510,7 +518,7 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
                                     <label>Nom<input type="text" name="name" required></label>
                                     <label>Cognoms<input type="text" name="surname"></label>
                                     <label>Email<input type="email" name="email" required></label>
-                                    <label>Contrasenya<input type="text" name="password" required></label>
+                                    <label>Contrasenya<input type="password" name="password" required autocomplete="new-password"></label>
                                     <label>Classe<select name="class_id"><?php $renderClassOptions(null); ?></select></label>
                                 </div>
                                 <div class="form__group"><label>Rols</label><div class="form__choices"><?php $renderRoleChoices(['student']); ?></div></div>
@@ -526,13 +534,13 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
                             <button class="collapse-toggle" type="button" data-collapse="importar-usuaris-content">Mostrar</button>
                         </div>
                         <div id="importar-usuaris-content" class="admin-collapsible__content">
-                            <p class="muted admin-csv-import__help">Capçaleres CSV: <code>users.name,users.surname,users.email,users.password,classes.class_code,web_roles.name,users.is_active,project_academic_years.id,project_teams.team_name,project_roles.id</code>.</p>
+                            <p class="muted admin-csv-import__help">Capçaleres CSV: <code>users.name,users.surname,users.email,classes.class_code,web_roles.name,users.is_active,project_academic_years.id,project_teams.team_name,project_roles.id</code>. No incloguis cap columna de contrasenya.</p>
                             <p class="muted admin-csv-import__help">Cal indicar l’edició del projecte, la classe, el nom de l’equip i un <code>project_roles.id</code> existent. Si l’equip no existeix dins de l’edició i la classe, es crea automàticament i el seu codi es construeix com <code>26-27_mediterrani_1ESOA-01</code>.</p>
                             <p class="muted admin-csv-import__help">Exemple amb dades actuals: l’edició <code>4</code> és Mediterrani 2026-2027, la classe <code>26-27_1ESOA</code> existeix i el rol de projecte <code>1</code> és <code>generic</code>.</p>
-                            <pre class="admin-csv-import__example"><code>users.name,users.surname,users.email,users.password,classes.class_code,web_roles.name,users.is_active,project_academic_years.id,project_teams.team_name,project_roles.id
-Laia,Serra,laia.serra@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,1
-Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,1</code></pre>
-                            <p class="muted admin-csv-import__help">Aquest exemple crea el codi <code>26-27_mediterrani_1ESOA-01</code> i assigna els dos alumnes al mateix equip.</p>
+                            <pre class="admin-csv-import__example"><code>users.name,users.surname,users.email,classes.class_code,web_roles.name,users.is_active,project_academic_years.id,project_teams.team_name,project_roles.id
+Laia,Serra,laia.serra@example.com,26-27_1ESOA,student,1,4,1ESOA-01,1
+Nil,Ferrer,nil.ferrer@example.com,26-27_1ESOA,student,1,4,1ESOA-01,1</code></pre>
+                            <p class="muted admin-csv-import__help">Aquest exemple crea un enllaç d’activació per a cada alumne, crea el codi <code>26-27_mediterrani_1ESOA-01</code> i assigna els dos alumnes al mateix equip.</p>
                             <form class="admin-form" method="post" action="<?= url('admin') ?>" enctype="multipart/form-data">
                                 <input type="hidden" name="action" value="import_students">
                                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
@@ -616,9 +624,9 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                 <thead><tr><th data-sort-type="text">Nom</th><th>Foto</th><th data-sort-type="text">Email</th><th data-sort-type="text">Classe</th><th data-sort-type="text">Equip</th><th data-sort-type="number">Visites</th><th data-sort-type="text">Estat</th><th>Accions</th></tr></thead>
                                 <tbody>
                                     <?php foreach ($studentUsers as $user): ?>
-                                        <?php $userId = (int) ($user['id'] ?? 0); $classCode = (string) ($user['class_code'] ?? ''); $userTeamLabels = array_values($studentTeamLabels[$userId] ?? []); ?>
+                                        <?php $userId = (int) ($user['id'] ?? 0); $classCode = (string) ($user['class_code'] ?? ''); $userName = trim((string) ($user['name'] ?? '')); $userSurname = trim((string) ($user['surname'] ?? '')); $userTeamLabels = array_values($studentTeamLabels[$userId] ?? []); ?>
                                         <tr data-user-row data-class="<?= htmlspecialchars($classCode, ENT_QUOTES, 'UTF-8') ?>" data-status="<?= ((int) ($user['is_active'] ?? 0) === 1) ? 'active' : 'inactive' ?>" data-search="<?= htmlspecialchars(strtolower(trim((string) ($user['name'] ?? '') . ' ' . (string) ($user['surname'] ?? '') . ' ' . (string) ($user['email'] ?? ''))), ENT_QUOTES, 'UTF-8') ?>">
-                                            <td><?= htmlspecialchars(trim((string) ($user['name'] ?? '') . ' ' . (string) ($user['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td data-sort-value="<?= htmlspecialchars($userSurname . ' ' . $userName, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(trim($userName . ' ' . $userSurname), ENT_QUOTES, 'UTF-8') ?></td>
                                              <td><?php if (trim((string) ($user['avatar_url'] ?? '')) !== ''): ?><button type="button" class="user-avatar-trigger" data-avatar-src="<?= url('user-avatar/' . $userId) ?>" data-avatar-name="<?= htmlspecialchars(trim((string) ($user['name'] ?? '') . ' ' . (string) ($user['surname'] ?? '')), ENT_QUOTES, 'UTF-8') ?>" title="Fes clic per ampliar"><img class="user-avatar" src="<?= url('user-avatar/' . $userId) ?>" alt="Foto de <?= htmlspecialchars((string) ($user['name'] ?? 'alumne'), ENT_QUOTES, 'UTF-8') ?>"></button><?php else: ?><span class="user-avatar user-avatar--placeholder" aria-label="Sense foto">?</span><?php endif; ?></td>
                                             <td><?= htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                                             <td><?= htmlspecialchars($classCode !== '' ? $classCode : 'Sense classe', ENT_QUOTES, 'UTF-8') ?></td>
@@ -632,6 +640,12 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                                         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                                                         <input type="hidden" name="student_id" value="<?= $userId ?>">
                                                         <button class="button button--small button--secondary" type="submit">Veure com alumne</button>
+                                                    </form>
+                                                    <form class="inline-form" method="post" action="<?= url('admin') ?>" data-confirm="Generar un nou enllaç de reset per a aquest alumne?">
+                                                        <input type="hidden" name="action" value="generate_student_password_reset">
+                                                        <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                                        <input type="hidden" name="student_id" value="<?= $userId ?>">
+                                                        <button class="button button--small button--secondary" type="submit">Generar reset</button>
                                                     </form>
                                                 </div>
                                             </td>
@@ -722,12 +736,14 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                                                     <input type="hidden" name="action" value="update_student_team">
                                                                     <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                                                                     <input type="hidden" name="user_id" value="<?= $memberId ?>">
+                                                                    <input type="hidden" name="project_academic_year_id" value="<?= (int) ($team['project_academic_year_id'] ?? 0) ?>">
                                                                     <select name="team_id" aria-label="Canviar grup de <?= htmlspecialchars($memberName, ENT_QUOTES, 'UTF-8') ?>">
                                                                         <?php $renderTeamOptions($currentTeamId, $teamClassId, $teamClassCode); ?>
                                                                     </select>
                                                                     <button class="button button--small" type="submit">Canviar grup</button>
                                                                 </form>
                                                                 <form class="inline-form" method="post" action="<?= url('admin/impersonate-student') ?>"><input type="hidden" name="csrf_token" value="<?= $csrfToken ?>"><input type="hidden" name="student_id" value="<?= $memberId ?>"><button class="button button--small button--secondary" type="submit">Veure com alumne</button></form>
+                                                                <button class="button button--small button--secondary" type="button" data-target="student-editor-<?= $memberId ?>">Editar alumne</button>
                                                             </div>
                                                         </li>
                                                     <?php endforeach; ?>
@@ -780,6 +796,7 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                     $stTeamCode = (string) ($st['team_code'] ?? '');
                                     $stTeamName = (string) ($st['team_name'] ?? '');
                                     $stTeamId = !empty($st['team_id']) ? (int) $st['team_id'] : null;
+                                    $stProjectAcademicYearId = !empty($st['project_academic_year_id']) ? (int) $st['project_academic_year_id'] : null;
                                     $currentTeamLabel = $stTeamName !== '' ? $stTeamName : ($stTeamCode !== '' ? $stTeamCode : 'Sense grup');
                                     ?>
                                      <tr data-user-row data-class="<?= htmlspecialchars($stClassCode, ENT_QUOTES, 'UTF-8') ?>" data-status="active" data-search="<?= htmlspecialchars(strtolower(trim((string) ($st['name'] ?? '') . ' ' . (string) ($st['surname'] ?? '') . ' ' . (string) ($st['email'] ?? ''))), ENT_QUOTES, 'UTF-8') ?>">
@@ -793,6 +810,7 @@ Nil,Ferrer,nil.ferrer@example.com,MED-Canvi123,26-27_1ESOA,student,1,4,1ESOA-01,
                                                 <input type="hidden" name="action" value="update_student_team">
                                                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                                                 <input type="hidden" name="user_id" value="<?= $stUserId ?>">
+                                                <input type="hidden" name="project_academic_year_id" value="<?= (int) ($stProjectAcademicYearId ?? 0) ?>">
                                                 <select name="team_id" style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: .35rem .5rem; font: inherit;">
                                                     <?php $renderTeamOptions($stTeamId, $stClassId, $stClassCode); ?>
                                                 </select>
