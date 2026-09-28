@@ -45,7 +45,7 @@ body {
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     line-height: 1.55;
 }
-body:has(.public-home) { overflow: hidden; }
+body:has(.public-home) { overflow-x: hidden; }
 
 a { color: inherit; }
 code {
@@ -144,55 +144,54 @@ code {
 .text-uppercase { text-transform: uppercase; }
 .pill { background: var(--leaf-soft); border-radius: var(--radius-full); color: var(--leaf); display: inline-block; font-size: .8rem; padding: .25rem .6rem; }
 
-.page-content { flex: 1 0 auto; padding: 1rem 2rem 2rem; max-width: 1200px; margin: 0 auto; }
+.page-content { flex: 1 0 auto; padding: 1rem ; max-width: 1200px; margin: 0 auto; }
 .page-content:has(.admin-layout) { box-sizing: border-box; max-width: 1600px; width: 100%; }
 .page-content:has(.public-project-detail) { max-width: none; width: 100%; }
+.page-content:has(.public-home) { max-width: 1480px; width: 100%; padding-inline: 1rem; }
 
 .hero,
-.hero--home,
 .page-header { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
 .hero, .auth-card, .card { background: white; padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); }
 .auth-card__intro { color: var(--text-body); line-height: 1.6; }
-.hero,
-.hero--home { display: flex; flex-direction: column; justify-content: center; gap: 1rem; min-height: auto; padding: 3rem 0 4rem; }
+.hero { display: flex; flex-direction: column; justify-content: center; gap: 1rem; min-height: auto; padding: 2rem 0 2rem; }
 .public-home {
-    position: relative;
-    display: flex; /* Canviem Grid per Flexbox, que és més segur per altures dinàmiques */
+    display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.25rem;
-    overflow: visible;
+    gap: 0.5rem;
     width: 100%;
-    height: auto; /* Assegurem que la caixa pot créixer tot el que vulgui */
     min-height: clamp(360px, 48svh, 500px);
-    padding: clamp(1rem, 5vw, 1rem) 0; /* Donem una mica més d'aire a dalt i a baix */
-    background:
-        radial-gradient(circle at top right, rgba(107,143,94,.10), transparent 34%),
-        linear-gradient(180deg, var(--paper) 0%, var(--bg) 100%);
+    padding: 0;
+    background: linear-gradient(180deg, var(--paper) 0%, var(--bg) 100%);
     color: var(--ink);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-2);
 }
-.public-home::after {
-    content: '';
-    position: absolute;
-    inset: auto -10% -20% auto;
-    width: 34vw;
-    height: 34vw;
-    max-width: 360px;
-    max-height: 360px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(107,143,94,.16), rgba(107,143,94,0) 68%);
-    pointer-events: none;
+.public-home__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.3rem;
+    gap: 1rem;
+    text-align: center;
 }
-.public-home__content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; margin: 0.1rem; }
-.public-home__title { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.hero__title.public-home__title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    color: var(--text-body);
+    line-height: 1.1;
+}
 .public-home__brand-row {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
     gap: .85rem;
+    width: 100%;
     margin-bottom: 0;
 }
 .public-home__brand {
@@ -200,9 +199,8 @@ code {
     height: auto;
     object-fit: contain;
 }
-.public-home__brand--entorns { width: min(175px, 40vw); }
-.public-home__brand--intermunicipal { width: min(175px, 40vw); }
-.public-home__eyebrow {
+.public-home__brand--mediterraniament { width: min(1100px, 100%); }
+.public-about__eyebrow {
     color: var(--leaf-2);
     font-size: .8rem;
     font-weight: 800;
@@ -210,18 +208,15 @@ code {
     margin: 0;
     text-transform: uppercase;
 }
-.public-home__text { color: var(--text-body); }
-.public-home .hero__title,
-.public-home .hero__text { 
-    color: var(--text-body); 
-    white-space: normal !important; 
-    overflow: visible !important; 
-    display: block !important;
+.hero__text.public-home__text {
+    color: var(--text-body);
+    white-space: normal;
+    overflow: visible;
     width: 100%;
-    max-width: 900px; /* Puja aquest valor (ex: 1000px o 1200px) per fer la caixa més ampla */
-    margin: 0 auto;   /* Assegura que el bloc de text quedi centrat horitzontalment */
+    max-width: 1280px;
+    margin: 0 auto;
 }
-.public-home .button { background: var(--leaf); color: white; }
+.public-home__actions .button { background: var(--leaf); color: white; }
 .public-home__actions { margin-top: .15rem; }
 .public-home__actions .button--secondary { background: white; color: var(--leaf); border: 1px solid var(--border); }
 
@@ -271,11 +266,10 @@ code {
 .public-home-collaborators__eyebrow { margin: 0; }
 .public-project-detail__eyebrow { margin: 0 0 .35rem; }
 .public-home-collaborators__grid {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: center;
-    justify-content: center;
     gap: .85rem;
-    flex-wrap: nowrap;
 }
 .public-home-collaborator-card {
     align-items: center;
@@ -300,16 +294,16 @@ code {
     margin: 0 auto;
     object-fit: contain;
 }
-.public-home-collaborator-card__logo--large {
-    max-height: 80px;
-}
 .public-home-collaborator-card__logo--medium {
     max-height: 74px;
+}
+.public-home-collaborator-card__logo--small {
+    max-height: 36px;
 }
 .hero__title,
 .hero h1 { max-width: 780px; margin: 0 0 18px; font-size: clamp(2.6rem, 6vw, 5.5rem); line-height: .96; letter-spacing: 0; }
 .hero p:last-of-type,
-.hero__text { max-width: 650px; margin-bottom: 0; color: var(--text-body); font-size: clamp(1.02rem, 2vw, 1.22rem); }
+.hero__text { max-width: 80%; margin-bottom: 0; color: var(--text-body); font-size: clamp(1.02rem, 2vw, 1.22rem); }
 .actions,
 .hero__actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
 .page-header { margin-bottom: 2rem; }
@@ -1958,7 +1952,6 @@ code {
     .admin-layout { grid-template-columns: 1fr; }
     .admin-layout__sidebar { position: static; }
     .grade-row { align-items: flex-start; flex-direction: column; gap: .35rem; }
-    .public-home { grid-template-columns: 1fr; }
     .public-projects__grid { grid-template-columns: 1fr; }
     .teacher-dashboard__projects,
     .student-dashboard__projects { grid-template-columns: 1fr; }
@@ -1991,14 +1984,12 @@ code {
     .hero, .section, .page-header { width: min(1120px, calc(100% - 24px)); }
     .hero { min-height: auto; padding: 1rem 0 1.4rem; }
     .public-home__content { gap: .62rem; }
-    .public-home__brand { width: min(124px, 43vw); }
+    .public-home__brand--mediterraniament { width: min(560px, 100%); }
     .public-home__brand-row { gap: .65rem; }
     .public-home__title { max-width: 100%; }
-    .public-home { min-height: auto; padding: 1rem 0 1.4rem; }
-    .public-home .hero__text { white-space: normal; overflow: visible; }
-    .public-home::after { width: 42vw; height: 42vw; }
+    .public-home { min-height: auto; padding: 0; }
     .public-home-collaborators { width: min(1120px, calc(100% - 24px)); }
-    .public-home-collaborators__grid { flex-wrap: wrap; justify-content: center; }
+    .public-home-collaborators__grid { grid-template-columns: 1fr; }
     .public-projects__hero,
     .public-project-detail { border-radius: var(--radius-4xl); padding: 1.25rem; }
     .public-project-detail__logo { max-height: 68px; }

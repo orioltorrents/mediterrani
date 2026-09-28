@@ -1,12 +1,11 @@
 <?php
 ob_start();
 ?>
-<section class="hero hero--home public-home">
+<section class="hero public-home">
     <div class="public-home__content">
         <div class="public-home__brand-row" aria-label="Logotip del projecte">
-            <img class="public-home__brand public-home__brand--intermunicipal" src="<?= url('assets/logos/intermunicipal/logo-inter-2017-transparent.png') ?>" alt="Intermunicipal">
+            <img class="public-home__brand public-home__brand--mediterraniament" src="<?= url('assets/logos/mediterraniament/MEDITERRÀNIAMENT.png') ?>" alt="Mediterràniament">
         </div>
-        <p class="public-home__eyebrow"><?= htmlspecialchars(trans('educational_environment'), ENT_QUOTES, 'UTF-8') ?></p>
         <h1 class="hero__title public-home__title">
             <span><?= htmlspecialchars(trans('home_title_greeting'), ENT_QUOTES, 'UTF-8') ?></span>
             <span><?= htmlspecialchars(trans('home_title_name'), ENT_QUOTES, 'UTF-8') ?></span>
@@ -21,13 +20,15 @@ ob_start();
 
 <?php
 $collaborators = [
+    ['name' => 'Institut Intermunicipal del Penedès', 'logo' => 'intermunicipal/logo-inter-2017-transparent.png', 'url' => 'https://agora.xtec.cat/ins-intermunicipal/', 'logo_class' => 'public-home-collaborator-card__logo--medium'],
+    ['name' => 'Domini', 'logo' => 'domini/domini.PNG', 'url' => 'https://domini.cat/', 'logo_class' => 'public-home-collaborator-card__logo--small'],
     ['name' => 'Ajuntament de Sant Sadurní', 'logo' => 'collaboradors/Ajuntament-SantSadurni.png', 'url' => 'https://www.santsadurni.cat', 'logo_class' => 'public-home-collaborator-card__logo--medium'],
 ];
 ?>
 
 <section class="public-home-collaborators" aria-labelledby="collaborators-title">
     <div class="public-home-collaborators__header">
-        <p class="public-home-collaborators__eyebrow"><?= htmlspecialchars(trans('collaborators'), ENT_QUOTES, 'UTF-8') ?></p>
+        <p id="collaborators-title" class="public-home-collaborators__eyebrow"><?= htmlspecialchars(trans('collaborators'), ENT_QUOTES, 'UTF-8') ?></p>
     </div>
     <div class="public-home-collaborators__grid">
         <?php foreach ($collaborators as $collaborator): ?>
