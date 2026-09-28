@@ -4,7 +4,7 @@ return [
     'home_title' => 'Benvinguts a Mediterràniament',
     'home_title_greeting' => 'Benvinguts a',
     'home_title_name' => 'Mediterràniament',
-    'home_intro' => 'Una plataforma educativa per aprendre sobre el Mediterrani',
+    'home_intro' => 'Una plataforma educativa per descobrir el Mediterrani en tota la seva dimensió: el mar i els seus reptes, així com els països, cultures i llengües que l\'envolten.',
     'projects' => 'Projectes',
     'admin' => 'Panell d\'administració',
     'projects_title' => 'Projectes educatius',

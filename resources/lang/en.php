@@ -4,7 +4,7 @@ return [
     'home_title' => 'Welcome to Mediterràniament',
     'home_title_greeting' => 'Welcome to',
     'home_title_name' => 'Mediterràniament',
-    'home_intro' => 'An educational platform to learn about Mediterranean sea',
+    'home_intro' => 'An educational platform to discover the Mediterranean in all its dimensions: the sea and its challenges, as well as the countries, cultures, and languages that surround it',
     'projects' => 'Projects',
     'admin' => 'Administration Panel',
     'projects_title' => 'Educational projects',

@@ -157,14 +157,15 @@ code {
 .hero--home { display: flex; flex-direction: column; justify-content: center; gap: 1rem; min-height: auto; padding: 3rem 0 4rem; }
 .public-home {
     position: relative;
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex; /* Canviem Grid per Flexbox, que és més segur per altures dinàmiques */
+    flex-direction: column;
+    justify-content: center;
     gap: 1.25rem;
-    align-items: center;
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
+    height: auto; /* Assegurem que la caixa pot créixer tot el que vulgui */
     min-height: clamp(360px, 48svh, 500px);
-    padding: clamp(1.25rem, 3vw, 2.25rem) 0;
+    padding: clamp(1rem, 5vw, 1rem) 0; /* Donem una mica més d'aire a dalt i a baix */
     background:
         radial-gradient(circle at top right, rgba(107,143,94,.10), transparent 34%),
         linear-gradient(180deg, var(--paper) 0%, var(--bg) 100%);
@@ -184,7 +185,7 @@ code {
     background: radial-gradient(circle, rgba(107,143,94,.16), rgba(107,143,94,0) 68%);
     pointer-events: none;
 }
-.public-home__content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: .75rem; text-align: center; margin: 0 127px; }
+.public-home__content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; margin: 0.1rem; }
 .public-home__title { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
 .public-home__brand-row {
     display: flex;
@@ -211,7 +212,15 @@ code {
 }
 .public-home__text { color: var(--text-body); }
 .public-home .hero__title,
-.public-home .hero__text { color: var(--text-body); white-space: nowrap; overflow: hidden; }
+.public-home .hero__text { 
+    color: var(--text-body); 
+    white-space: normal !important; 
+    overflow: visible !important; 
+    display: block !important;
+    width: 100%;
+    max-width: 900px; /* Puja aquest valor (ex: 1000px o 1200px) per fer la caixa més ampla */
+    margin: 0 auto;   /* Assegura que el bloc de text quedi centrat horitzontalment */
+}
 .public-home .button { background: var(--leaf); color: white; }
 .public-home__actions { margin-top: .15rem; }
 .public-home__actions .button--secondary { background: white; color: var(--leaf); border: 1px solid var(--border); }
