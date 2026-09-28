@@ -102,7 +102,7 @@ $router->get('/{lang}', static function (array $params) use ($controller): strin
 
     return $controller->home();
 }, ['lang' => implode('|', supportedLanguages())]);
-$router->get('/{lang}/que-es-entorns', static function (array $params) use ($controller): string {
+$router->get('/{lang}/que-es-mediterraniament', static function (array $params) use ($controller): string {
     setLanguage((string) $params['lang'], true);
 
     return $controller->about();

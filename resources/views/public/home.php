@@ -13,7 +13,7 @@ ob_start();
         </h1>
         <p class="hero__text public-home__text"><?= htmlspecialchars(trans('home_intro'), ENT_QUOTES, 'UTF-8') ?></p>
         <div class="actions hero__actions public-home__actions">
-            <a class="button" href="<?= url(getLanguage() . '/que-es-entorns') ?>"><?= htmlspecialchars(trans('enter'), ENT_QUOTES, 'UTF-8') ?></a>
+            <a class="button" href="<?= url(getLanguage() . '/que-es-mediterraniament') ?>"><?= htmlspecialchars(trans('enter'), ENT_QUOTES, 'UTF-8') ?></a>
         </div>
     </div>
 </section>

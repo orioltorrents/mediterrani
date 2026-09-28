@@ -14,7 +14,7 @@
 <?php endif; ?>
 <header class="site-header">
     <div class="brand site-header__brand">
-        <a href="<?= url('') ?>">Mediterrani</a>
+        <a href="<?= url('') ?>">Mediterràniament</a>
     </div>
     <nav class="site-header__nav">
         <?php if (!empty($_SESSION['user'])): ?>
@@ -31,7 +31,7 @@
                 <a class="site-header__nav-link" href="<?= url('professor') ?>"><?= htmlspecialchars(trans('projects'), ENT_QUOTES, 'UTF-8') ?></a>
             <?php endif; ?>
             <?php if (in_array('admin', $roles, true)): ?>
-                <a class="site-header__nav-link" href="<?= url('admin') ?>">Admin</a>
+                <a class="site-header__nav-link" href="<?= url('admin') ?>"><?= htmlspecialchars(trans('admin'), ENT_QUOTES, 'UTF-8') ?></a>
             <?php endif; ?>
             <?php if ($displayName !== ''): ?>
                 <span class="site-header__user"><?= htmlspecialchars(sprintf(trans('logged_in_as'), $displayName), ENT_QUOTES, 'UTF-8') ?></span>

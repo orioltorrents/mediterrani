@@ -1,11 +1,12 @@
 <?php
 
 return [
-    'home_title' => 'Welcome to Mediterrani',
+    'home_title' => 'Welcome to Mediterràniament',
     'home_title_greeting' => 'Welcome to',
-    'home_title_name' => 'Mediterrani',
-    'home_intro' => 'An educational platform to explore scientific projects, environment and citizen science.',
+    'home_title_name' => 'Mediterràniament',
+    'home_intro' => 'An educational platform to learn about Mediterranean sea',
     'projects' => 'Projects',
+    'admin' => 'Administration Panel',
     'projects_title' => 'Educational projects',
     'projects_intro' => 'Browse the school projects and open each proposal to view its details.',
     'no_published_projects' => 'There are no published projects at the moment.',
@@ -105,6 +106,6 @@ return [
     'your_team_role' => 'Your team role',
     'open_task_in_classroom' => 'Open task in Classroom',
     'no_tasks_visible' => 'No tasks visible for your current context.',
-    'about_fallback_title' => 'What is Mediterrani?',
-    'about_fallback_text' => 'Mediterrani is an educational platform for interdisciplinary 4th-year ESO projects, where students develop scientific, digital and citizenship skills through the study of the environment.',
+    'about_fallback_title' => 'What is Mediterràniament?',
+    'about_fallback_text' => 'Mediterràniament is an educational platform for 1st year of ESO interdisciplinary projects, where students develop skills in the social, artistic, and scientific-technological fields through the study of the Mediterranean Sea.',
 ];

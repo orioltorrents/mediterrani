@@ -1,11 +1,12 @@
 <?php
 
 return [
-    'home_title' => 'Bienvenue sur Mediterrani',
+    'home_title' => 'Bienvenue sur Mediterràniament',
     'home_title_greeting' => 'Bienvenue sur',
-    'home_title_name' => 'Mediterrani',
-    'home_intro' => 'Une plateforme éducative pour explorer des projets scientifiques, l\'environnement et la science citoyenne.',
+    'home_title_name' => 'Mediterràniament',
+    'home_intro' => 'Une plateforme éducative pour aprendre sur la Méditerranée',
     'projects' => 'Projets',
+    'admin' => 'Panneau d\'administration',
     'projects_title' => 'Projets éducatifs',
     'projects_intro' => 'Consultez les projets de l\'établissement et ouvrez chaque proposition pour en voir le détail.',
     'no_published_projects' => 'Aucun projet n\'est publié pour le moment.',
@@ -105,6 +106,6 @@ return [
     'your_team_role' => 'Votre rôle d\'équipe',
     'open_task_in_classroom' => 'Ouvrir la tâche dans Classroom',
     'no_tasks_visible' => 'Aucune tâche visible pour votre contexte actuel.',
-    'about_fallback_title' => 'Qu\'est-ce que Mediterrani ?',
-    'about_fallback_text' => 'Mediterrani est une plateforme éducative pour des projets interdisciplinaires de 4e ESO, où les élèves développent des compétences scientifiques, numériques et citoyennes à travers l\'étude de l\'environnement.',
+    'about_fallback_title' => 'Qu\'est-ce que Mediterràniament ?',
+    'about_fallback_text' => 'Mediterràniament est une plateforme éducative pour des projets interdisciplinaires de 1re d\'ESO, où les élèves travaillent des compétences dans les domaines social, artistique et scientifico-technologique à travers l\'étude de la mer Méditerranée.',
 ];

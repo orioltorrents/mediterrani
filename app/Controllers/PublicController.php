@@ -25,7 +25,7 @@ class PublicController
     public function about(): string
     {
         return view('public.about', [
-            'title' => 'Què és Mediterrani',
+            'title' => 'Què és Mediterràniament',
             'aboutContent' => $this->sitePageService->aboutContent(),
         ]);
     }

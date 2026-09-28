@@ -1,11 +1,12 @@
 <?php
 
 return [
-    'home_title' => 'Benvinguts a Mediterrani',
+    'home_title' => 'Benvinguts a Mediterràniament',
     'home_title_greeting' => 'Benvinguts a',
-    'home_title_name' => 'Mediterrani',
-    'home_intro' => 'Una plataforma educativa per explorar projectes científics, medi ambient i ciència ciutadana.',
+    'home_title_name' => 'Mediterràniament',
+    'home_intro' => 'Una plataforma educativa per aprendre sobre el Mediterrani',
     'projects' => 'Projectes',
+    'admin' => 'Panell d\'administració',
     'projects_title' => 'Projectes educatius',
     'projects_intro' => 'Consulta els projectes del centre i entra a cada proposta per veure\'n el detall.',
     'no_published_projects' => 'No hi ha projectes publicats en aquest moment.',
@@ -105,6 +106,6 @@ return [
     'your_team_role' => 'El teu rol d\'equip',
     'open_task_in_classroom' => 'Obrir tasca a Classroom',
     'no_tasks_visible' => 'No hi ha tasques visibles per al teu context actual.',
-    'about_fallback_title' => 'Què és Mediterrani?',
-    'about_fallback_text' => 'Mediterrani és una plataforma educativa per a projectes interdisciplinaris de 4t d\'ESO, on l\'alumnat treballa competències científiques, digitals i ciutadanes a través de l\'estudi del medi i l\'entorn.',
+    'about_fallback_title' => 'Què és Mediterràniament?',
+    'about_fallback_text' => 'Mediterràniament és una plataforma educativa per a projectes interdisciplinaris de 1r d\'ESO on l\'alumnat treballa competències de l\'àmbit social, artístic i cientifico-tecnològic a través de l\'estudi del mar Mediterrani.',
 ];

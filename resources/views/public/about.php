@@ -87,7 +87,7 @@ if (!function_exists('publicAboutRenderSegments')) {
 ?>
 <section class="public-about" aria-labelledby="about-title">
     <article class="public-about__card">
-        <p class="public-home__eyebrow">Mediterrani</p>
+        <p class="public-home__eyebrow">Mediterràniament</p>
         <?php if ($blocks !== []): ?>
             <?php $mainTitleIdUsed = false; ?>
             <?php for ($index = 0; $index < count($blocks); $index++): ?>
