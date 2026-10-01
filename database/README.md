@@ -13,7 +13,7 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 
 ## Esquema actual
 
-`schema.sql` crea 30 taules. La base local revisada en data 2026-09-19 també conté aquestes 30 taules.
+`schema.sql` crea 31 taules. La base local actual ha d'incloure aquestes 31 taules.
 
 ### Usuaris i accés
 
@@ -47,6 +47,7 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 ### Objectius i assoliment
 
 - `objectius_aprenentatge`
+- `criteris_assoliment`
 - `project_academic_year_objectius`
 - `indicadors_assoliment`
 - `student_indicador_assoliment`
@@ -94,11 +95,13 @@ project_team_members N ---- N project_roles
                        mitjançant project_team_member_roles
 ```
 
-Els objectius es poden assignar a una edició concreta i avaluar individualment per alumne.
+Els objectius es poden assignar a una edició concreta. Cada objectiu pot tenir criteris d’assoliment i cada criteri pot tenir indicadors de semàfor. L’avaluació individual continua vinculada a l’objectiu i a l’edició.
 
 ```text
 project_academic_years N ---- N objectius_aprenentatge
-                       mitjançant project_academic_year_objectius
+                        mitjançant project_academic_year_objectius
+
+objectius_aprenentatge 1 ---- N criteris_assoliment 1 ---- N indicadors_assoliment
 
 users 1 ---- N student_indicador_assoliment
 ```
@@ -111,6 +114,8 @@ evidencies_tipus     1 ---- N evidencies_alumnes
 ```
 
 `evidencies_alumnes` relaciona cada evidència registrada amb un usuari, una edició de projecte, un objectiu d'aprenentatge, una categoria i un tipus. La importació des d'un full de càlcul encara està pendent.
+
+`criteris_assoliment.codi` és opcional i editable des de l'administració. Els criteris existents poden conservar-lo buit fins que es codifiquin.
 
 Els Classroom estan vinculats al curs, a una edició de projecte i als usuaris que en són membres.
 

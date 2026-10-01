@@ -145,7 +145,7 @@ foreach ($projectYearObjectivesMap as $editionId => $objectiveIds) {
                             <option value="">Selecciona primer una edició</option>
                             <?php foreach ($objectives as $objective): ?>
                                 <option value="<?= (int) ($objective['id'] ?? 0) ?>" data-editions="<?= htmlspecialchars(implode(',', $objectiveEditionIds[(int) ($objective['id'] ?? 0)] ?? []), ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars((string) ($objective['codi'] ?? ''), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($objective['titol'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    <?= htmlspecialchars((string) ($objective['codi'] ?? ''), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($objective['descripcio_simplificada'] ?? $objective['descripcio_completa'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

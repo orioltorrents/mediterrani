@@ -11,7 +11,11 @@ class AdminObjectivesService
     public function objectives(): array
     {
         try {
-            $stmt = $this->pdo->query('SELECT id, project_id, codi, titol, creat_el, updated_at FROM objectius_aprenentatge ORDER BY codi ASC');
+            $stmt = $this->pdo->query(
+                'SELECT id, project_id, codi, descripcio_completa, descripcio_simplificada, creat_el, updated_at
+                   FROM objectius_aprenentatge
+                  ORDER BY codi ASC'
+            );
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable) {
             return [];
@@ -32,34 +36,91 @@ class AdminObjectivesService
         }
     }
 
+    public function criteria(): array
+    {
+        try {
+            $stmt = $this->pdo->query(
+                'SELECT id, objectiu_id, codi, descripcio_completa, descripcio_simplificada, created_at, updated_at
+                   FROM criteris_assoliment
+                  ORDER BY objectiu_id ASC, id ASC'
+            );
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    public function criteriaByObjective(): array
+    {
+        $map = [];
+        foreach ($this->criteria() as $criterion) {
+            $map[(int) $criterion['objectiu_id']][] = $criterion;
+        }
+
+        return $map;
+    }
+
     public function createObjective(array $input): array
     {
         $codi = trim((string) ($input['codi'] ?? ''));
-        $titol = trim((string) ($input['titol'] ?? ''));
+        $completeDescription = trim((string) ($input['descripcio_completa'] ?? ''));
+        $simplifiedDescription = trim((string) ($input['descripcio_simplificada'] ?? ''));
         $projectId = filter_var($input['project_id'] ?? null, FILTER_VALIDATE_INT);
+        $projectAcademicYearId = filter_var($input['project_academic_year_id'] ?? null, FILTER_VALIDATE_INT);
         $resolvedProjectId = $projectId === null || $projectId === false || $projectId <= 0 ? null : (int) $projectId;
 
-        if ($codi === '' || $titol === '') {
-            return $this->message('El codi i el títol de l’objectiu són obligatoris.', 'error');
+        if ($codi === '' || $completeDescription === '' || $simplifiedDescription === '' || $resolvedProjectId === null || $projectAcademicYearId === null || $projectAcademicYearId === false || $projectAcademicYearId <= 0) {
+            return $this->message('El projecte, l’edició, el codi i les dues descripcions de l’objectiu són obligatoris.', 'error');
         }
-        
-        if ($resolvedProjectId !== null && !$this->projectExists($resolvedProjectId)) {
+
+        if (!$this->projectExists($resolvedProjectId)) {
             return $this->message('El projecte seleccionat no existeix.', 'error');
         }
 
+        $editionStmt = $this->pdo->prepare('SELECT project_id FROM project_academic_years WHERE id = :id LIMIT 1');
+        $editionStmt->execute(['id' => (int) $projectAcademicYearId]);
+        $editionProjectId = $editionStmt->fetchColumn();
+        if ($editionProjectId === false || (int) $editionProjectId !== $resolvedProjectId) {
+            return $this->message('L’edició seleccionada no correspon al projecte.', 'error');
+        }
+
+        $this->pdo->beginTransaction();
+
         try {
             $stmt = $this->pdo->prepare(
-                'INSERT INTO objectius_aprenentatge (project_id, codi, titol, creat_el, updated_at)
-                 VALUES (:project_id, :codi, :titol, NOW(), NOW())'
+                'INSERT INTO objectius_aprenentatge
+                    (project_id, codi, descripcio_completa, descripcio_simplificada, creat_el, updated_at)
+                 VALUES (:project_id, :codi, :descripcio_completa, :descripcio_simplificada, NOW(), NOW())'
             );
             $stmt->execute([
                 'project_id' => $resolvedProjectId,
                 'codi' => $codi,
-                'titol' => $titol,
+                'descripcio_completa' => $completeDescription,
+                'descripcio_simplificada' => $simplifiedDescription,
             ]);
+
+            $objectiveId = (int) $this->pdo->lastInsertId();
+            $assignmentStmt = $this->pdo->prepare(
+                'INSERT INTO project_academic_year_objectius (project_academic_year_id, objectiu_id, display_order)
+                 SELECT :edition_id, :objective_id, COALESCE(MAX(display_order), 0) + 1
+                   FROM project_academic_year_objectius
+                  WHERE project_academic_year_id = :edition_id_for_order'
+            );
+            $assignmentStmt->execute([
+                'edition_id' => (int) $projectAcademicYearId,
+                'objective_id' => $objectiveId,
+                'edition_id_for_order' => (int) $projectAcademicYearId,
+            ]);
+
+            $this->pdo->commit();
 
             return $this->message('Objectiu creat correctament.', 'success');
         } catch (Throwable) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
             return $this->message('No s’ha pogut crear l’objectiu.', 'error');
         }
     }
@@ -68,11 +129,12 @@ class AdminObjectivesService
     {
         $objectiveId = filter_var($input['objective_id'] ?? null, FILTER_VALIDATE_INT);
         $codi = trim((string) ($input['codi'] ?? ''));
-        $titol = trim((string) ($input['titol'] ?? ''));
+        $completeDescription = trim((string) ($input['descripcio_completa'] ?? ''));
+        $simplifiedDescription = trim((string) ($input['descripcio_simplificada'] ?? ''));
         $projectId = filter_var($input['project_id'] ?? null, FILTER_VALIDATE_INT);
         $resolvedProjectId = $projectId === null || $projectId === false || $projectId <= 0 ? null : (int) $projectId;
 
-        if ($objectiveId === null || $objectiveId === false || $codi === '' || $titol === '') {
+        if ($objectiveId === null || $objectiveId === false || $codi === '' || $completeDescription === '' || $simplifiedDescription === '') {
             return $this->message('Dades d’objectiu no vàlides.', 'error');
         }
         
@@ -90,20 +152,96 @@ class AdminObjectivesService
                 'UPDATE objectius_aprenentatge
                  SET project_id = :project_id,
                      codi = :codi,
-                     titol = :titol,
+                      descripcio_completa = :descripcio_completa,
+                      descripcio_simplificada = :descripcio_simplificada,
                      updated_at = NOW()
                  WHERE id = :id'
             );
             $stmt->execute([
                 'project_id' => $resolvedProjectId,
                 'codi' => $codi,
-                'titol' => $titol,
+                'descripcio_completa' => $completeDescription,
+                'descripcio_simplificada' => $simplifiedDescription,
                 'id' => (int) $objectiveId,
             ]);
 
             return $this->message('Objectiu actualitzat correctament.', 'success');
         } catch (Throwable) {
             return $this->message('No s’ha pogut actualitzar l’objectiu.', 'error');
+        }
+    }
+
+    public function createCriterion(array $input): array
+    {
+        $objectiveId = filter_var($input['objective_id'] ?? null, FILTER_VALIDATE_INT);
+        $code = trim((string) ($input['codi'] ?? ''));
+        $completeDescription = trim((string) ($input['descripcio_completa'] ?? ''));
+        $simplifiedDescription = trim((string) ($input['descripcio_simplificada'] ?? ''));
+
+        if ($objectiveId === null || $objectiveId === false || $objectiveId <= 0 || $completeDescription === '' || $simplifiedDescription === '') {
+            return $this->message('L’objectiu i les dues descripcions del criteri són obligatoris.', 'error');
+        }
+
+        if ($this->objective((int) $objectiveId) === null) {
+            return $this->message('No s’ha trobat l’objectiu del criteri.', 'error');
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO criteris_assoliment
+                    (objectiu_id, codi, descripcio_completa, descripcio_simplificada, created_at, updated_at)
+                 VALUES (:objectiu_id, :codi, :descripcio_completa, :descripcio_simplificada, NOW(), NOW())'
+            );
+            $stmt->execute([
+                'objectiu_id' => (int) $objectiveId,
+                'codi' => $code !== '' ? $code : null,
+                'descripcio_completa' => $completeDescription,
+                'descripcio_simplificada' => $simplifiedDescription,
+            ]);
+
+            return $this->message('Criteri d’assoliment creat correctament.', 'success');
+        } catch (Throwable) {
+            return $this->message('No s’ha pogut crear el criteri d’assoliment.', 'error');
+        }
+    }
+
+    public function updateCriterion(array $input): array
+    {
+        $criterionId = filter_var($input['criterion_id'] ?? null, FILTER_VALIDATE_INT);
+        $objectiveId = filter_var($input['objective_id'] ?? null, FILTER_VALIDATE_INT);
+        $code = trim((string) ($input['codi'] ?? ''));
+        $completeDescription = trim((string) ($input['descripcio_completa'] ?? ''));
+        $simplifiedDescription = trim((string) ($input['descripcio_simplificada'] ?? ''));
+
+        if ($criterionId === null || $criterionId === false || $objectiveId === null || $objectiveId === false || $completeDescription === '' || $simplifiedDescription === '') {
+            return $this->message('Dades del criteri d’assoliment no vàlides.', 'error');
+        }
+
+        if ($this->criterion((int) $criterionId) === null || $this->objective((int) $objectiveId) === null) {
+            return $this->message('No s’ha trobat el criteri o l’objectiu.', 'error');
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'UPDATE criteris_assoliment
+                    SET objectiu_id = :objectiu_id,
+                        codi = :codi,
+                        descripcio_completa = :descripcio_completa,
+                        descripcio_simplificada = :descripcio_simplificada,
+                        updated_at = NOW()
+                  WHERE id = :id'
+            );
+            $stmt->execute([
+                'objectiu_id' => (int) $objectiveId,
+                'codi' => $code !== '' ? $code : null,
+                'descripcio_completa' => $completeDescription,
+                'descripcio_simplificada' => $simplifiedDescription,
+                'id' => (int) $criterionId,
+            ]);
+
+            return $this->message('Criteri d’assoliment actualitzat correctament.', 'success');
+        } catch (Throwable) {
+            return $this->message('No s’ha pogut actualitzar el criteri d’assoliment.', 'error');
         }
     }
 
@@ -176,10 +314,18 @@ class AdminObjectivesService
     public function indicators(): array
     {
         try {
-            $stmt = $this->pdo->query('SELECT id, objectiu_id, color_semafor, descriptor FROM indicadors_assoliment');
+            $stmt = $this->pdo->query(
+                'SELECT id, criteri_assoliment_id, color_semafor, descriptor_complet, descriptor_simplificat
+                   FROM indicadors_assoliment
+                  ORDER BY criteri_assoliment_id ASC, id ASC'
+            );
             $map = [];
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                $map[(int) $row['objectiu_id']][(string) $row['color_semafor']] = (string) $row['descriptor'];
+                $map[(int) $row['criteri_assoliment_id']][(string) $row['color_semafor']] = [
+                    'id' => (int) $row['id'],
+                    'descriptor_complet' => (string) $row['descriptor_complet'],
+                    'descriptor_simplificat' => (string) $row['descriptor_simplificat'],
+                ];
             }
             return $map;
         } catch (Throwable) {
@@ -189,34 +335,63 @@ class AdminObjectivesService
 
     public function updateIndicators(array $input): array
     {
-        $objectiveId = filter_var($input['objective_id'] ?? null, FILTER_VALIDATE_INT);
+        $criterionId = filter_var($input['criterion_id'] ?? null, FILTER_VALIDATE_INT);
         $descriptors = $input['descriptors'] ?? [];
 
-        if ($objectiveId === null || $objectiveId === false || !is_array($descriptors)) {
+        if ($criterionId === null || $criterionId === false || !is_array($descriptors)) {
             return $this->message('Dades d’indicadors no vàlides.', 'error');
         }
-        
-        if ($this->objective($objectiveId) === null) {
-            return $this->message('No s’ha trobat l’objectiu associat als indicadors.', 'error');
+
+        if ($this->criterion((int) $criterionId) === null) {
+            return $this->message('No s’ha trobat el criteri associat als indicadors.', 'error');
         }
 
         $this->pdo->beginTransaction();
 
         try {
-            $upsertStmt = $this->pdo->prepare(
-                'INSERT INTO indicadors_assoliment (objectiu_id, color_semafor, descriptor, created_at, updated_at)
-                 VALUES (:objectiu_id, :color_semafor, :descriptor, NOW(), NOW())
-                 ON DUPLICATE KEY UPDATE descriptor = VALUES(descriptor), updated_at = NOW()'
+            $findStmt = $this->pdo->prepare(
+                'SELECT id FROM indicadors_assoliment
+                  WHERE criteri_assoliment_id = :criterion_id AND color_semafor = :color
+                  LIMIT 1'
+            );
+            $insertStmt = $this->pdo->prepare(
+                'INSERT INTO indicadors_assoliment
+                    (criteri_assoliment_id, color_semafor, descriptor_complet, descriptor_simplificat, created_at, updated_at)
+                 VALUES (:criterion_id, :color, :complete, :simplified, NOW(), NOW())'
+            );
+            $updateStmt = $this->pdo->prepare(
+                'UPDATE indicadors_assoliment
+                    SET descriptor_complet = :complete,
+                        descriptor_simplificat = :simplified,
+                        updated_at = NOW()
+                  WHERE id = :id'
             );
 
-            foreach (['vermell', 'groc', 'verd_clar', 'verd_fosc'] as $color) {
-                $desc = trim((string) ($descriptors[$color] ?? ''));
-                if ($desc !== '') {
-                    $upsertStmt->execute([
-                        'objectiu_id' => (int) $objectiveId,
-                        'color_semafor' => $color,
-                        'descriptor' => $desc,
+            foreach (['blau', 'verd', 'taronja', 'vermell'] as $color) {
+                $descriptor = is_array($descriptors[$color] ?? null) ? $descriptors[$color] : [];
+                $completeDescription = trim((string) ($descriptor['complet'] ?? ''));
+                $simplifiedDescription = trim((string) ($descriptor['simplificat'] ?? ''));
+                if ($completeDescription === '' || $simplifiedDescription === '') {
+                    continue;
+                }
+
+                $findStmt->execute([
+                    'criterion_id' => (int) $criterionId,
+                    'color' => $color,
+                ]);
+                $indicatorId = $findStmt->fetchColumn();
+                $values = [
+                    'complete' => $completeDescription,
+                    'simplified' => $simplifiedDescription,
+                ];
+
+                if ($indicatorId === false) {
+                    $insertStmt->execute($values + [
+                        'criterion_id' => (int) $criterionId,
+                        'color' => $color,
                     ]);
+                } else {
+                    $updateStmt->execute($values + ['id' => (int) $indicatorId]);
                 }
             }
 
@@ -255,5 +430,14 @@ class AdminObjectivesService
         $objective = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $objective === false ? null : $objective;
+    }
+
+    private function criterion(int $criterionId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, objectiu_id FROM criteris_assoliment WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $criterionId]);
+        $criterion = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $criterion === false ? null : $criterion;
     }
 }

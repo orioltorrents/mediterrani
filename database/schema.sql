@@ -4,7 +4,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-DROP TABLE IF EXISTS evidencies_alumnes, student_indicador_assoliment, indicadors_assoliment, project_academic_year_objectius,
+    DROP TABLE IF EXISTS evidencies_alumnes, student_indicador_assoliment, indicadors_assoliment, criteris_assoliment, project_academic_year_objectius,
     evidencies_tipus, evidencies_categoria,
     project_team_member_roles, project_team_members, project_teams, project_sections, project_class_assignments,
     project_academic_years, project_translations, projects, project_roles, classroom_members, classrooms, class_member_history,
@@ -264,10 +264,23 @@ CREATE TABLE objectius_aprenentatge (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NULL,
     codi VARCHAR(50) NOT NULL,
-    titol TEXT NOT NULL,
+    descripcio_completa TEXT NOT NULL,
+    descripcio_simplificada TEXT NOT NULL,
     creat_el TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_objectius_project (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE criteris_assoliment (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    objectiu_id INT NOT NULL,
+    codi VARCHAR(50) NULL,
+    descripcio_completa TEXT NOT NULL,
+    descripcio_simplificada TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_criteris_objectiu (objectiu_id),
+    CONSTRAINT fk_criteris_objectiu FOREIGN KEY (objectiu_id) REFERENCES objectius_aprenentatge(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE project_academic_year_objectius (
@@ -283,13 +296,14 @@ CREATE TABLE project_academic_year_objectius (
 
 CREATE TABLE indicadors_assoliment (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    objectiu_id INT NOT NULL,
+    criteri_assoliment_id INT NOT NULL,
     color_semafor VARCHAR(20) NOT NULL,
-    descriptor TEXT NOT NULL,
+    descriptor_complet TEXT NOT NULL,
+    descriptor_simplificat TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_objectiu_color (objectiu_id, color_semafor),
-    CONSTRAINT fk_indicadors_objectiu FOREIGN KEY (objectiu_id) REFERENCES objectius_aprenentatge(id) ON DELETE CASCADE
+    UNIQUE KEY uq_criteri_color (criteri_assoliment_id, color_semafor),
+    CONSTRAINT fk_indicadors_criteri FOREIGN KEY (criteri_assoliment_id) REFERENCES criteris_assoliment(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE student_indicador_assoliment (

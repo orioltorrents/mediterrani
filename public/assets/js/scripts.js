@@ -180,6 +180,126 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const initObjectiveDescriptionFilters = (root = document) => {
+        root.querySelectorAll('[data-objective-card]').forEach((card) => {
+            const buttons = Array.from(card.querySelectorAll('[data-objective-description-mode]'));
+            if (buttons.length === 0 || card.dataset.descriptionFiltersBound === 'true') return;
+
+            card.dataset.descriptionFiltersBound = 'true';
+            const applyFilter = () => {
+                const activeModes = buttons
+                    .filter((button) => button.classList.contains('is-active'))
+                    .map((button) => button.getAttribute('data-objective-description-mode'));
+                card.querySelectorAll('[data-objective-description]').forEach((description) => {
+                    description.hidden = !activeModes.includes(description.getAttribute('data-objective-description'));
+                });
+                buttons.forEach((button) => {
+                    button.setAttribute('aria-pressed', button.classList.contains('is-active') ? 'true' : 'false');
+                });
+            };
+
+            buttons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    button.classList.toggle('is-active');
+                    applyFilter();
+                });
+            });
+            applyFilter();
+        });
+    };
+
+    const initIndicatorDescriptionFilters = (root = document) => {
+        const applyGroup = (card, buttonSelector, descriptionSelector, buttonAttribute, descriptionAttribute) => {
+            const buttons = Array.from(card.querySelectorAll(buttonSelector));
+            const activeModes = buttons
+                .filter((button) => button.classList.contains('is-active'))
+                .map((button) => button.getAttribute(buttonAttribute));
+
+            card.querySelectorAll(descriptionSelector).forEach((description) => {
+                description.hidden = !activeModes.includes(description.getAttribute(descriptionAttribute));
+            });
+            buttons.forEach((button) => {
+                button.setAttribute('aria-pressed', button.classList.contains('is-active') ? 'true' : 'false');
+            });
+        };
+
+        root.querySelectorAll('[data-indicator-card]').forEach((card) => {
+            applyGroup(
+                card,
+                '[data-indicator-objective-description-mode]',
+                '[data-indicator-objective-description]',
+                'data-indicator-objective-description-mode',
+                'data-indicator-objective-description'
+            );
+            applyGroup(
+                card,
+                '[data-indicator-description-mode]',
+                '[data-indicator-description]',
+                'data-indicator-description-mode',
+                'data-indicator-description'
+            );
+        });
+
+        if (document.body.dataset.indicatorDescriptionDelegationBound === 'true') return;
+
+        document.body.dataset.indicatorDescriptionDelegationBound = 'true';
+        document.addEventListener('click', (event) => {
+            const target = event.target instanceof Element ? event.target : event.target.parentElement;
+            const button = target?.closest('[data-indicator-objective-description-mode], [data-indicator-description-mode]');
+            if (!button) return;
+
+            const card = button.closest('[data-indicator-card]');
+            if (!card) return;
+
+            const isObjectiveDescription = button.hasAttribute('data-indicator-objective-description-mode');
+            const buttonSelector = isObjectiveDescription
+                ? '[data-indicator-objective-description-mode]'
+                : '[data-indicator-description-mode]';
+            const descriptionSelector = isObjectiveDescription
+                ? '[data-indicator-objective-description]'
+                : '[data-indicator-description]';
+            const buttonAttribute = isObjectiveDescription
+                ? 'data-indicator-objective-description-mode'
+                : 'data-indicator-description-mode';
+            const descriptionAttribute = isObjectiveDescription
+                ? 'data-indicator-objective-description'
+                : 'data-indicator-description';
+
+            button.classList.toggle('is-active');
+            applyGroup(card, buttonSelector, descriptionSelector, buttonAttribute, descriptionAttribute);
+        });
+    };
+
+    const initObjectiveEditionFilters = (root = document) => {
+        root.querySelectorAll('[data-objective-project-select]').forEach((projectSelect) => {
+            if (projectSelect.dataset.editionFilterBound === 'true') return;
+
+            const form = projectSelect.closest('form');
+            const editionSelect = form?.querySelector('[data-objective-edition-select]');
+            if (!editionSelect) return;
+
+            projectSelect.dataset.editionFilterBound = 'true';
+            const editionOptions = Array.from(editionSelect.querySelectorAll('option[data-project-id]'));
+            const refreshEditions = () => {
+                const projectId = projectSelect.value;
+                let visibleOptions = 0;
+
+                editionOptions.forEach((option) => {
+                    const matches = projectId !== '' && option.getAttribute('data-project-id') === projectId;
+                    option.hidden = !matches;
+                    option.disabled = !matches;
+                    if (matches) visibleOptions++;
+                });
+
+                editionSelect.disabled = projectId === '' || visibleOptions === 0;
+                editionSelect.value = '';
+            };
+
+            projectSelect.addEventListener('change', refreshEditions);
+            refreshEditions();
+        });
+    };
+
     const initCollapseToggles = (root = document) => {
         root.querySelectorAll('.collapse-toggle').forEach((collapseButton) => {
             const targetId = collapseButton.getAttribute('data-collapse');
@@ -773,6 +893,9 @@ document.addEventListener('DOMContentLoaded', () => {
         initGlobalControls();
         initCollapseToggles(root);
         initEditorToggles(root);
+        initObjectiveDescriptionFilters(root);
+        initObjectiveEditionFilters(root);
+        initIndicatorDescriptionFilters(root);
         initSortableTables(root);
         initGenericFilters(root);
         initUserFilters(root);

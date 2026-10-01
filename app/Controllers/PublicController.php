@@ -373,7 +373,7 @@ class PublicController
         try {
             if ($editionId > 0) {
                 $stmt = $pdo->prepare(
-                    'SELECT oa.id, oa.codi, oa.titol AS description, payo.display_order
+                    'SELECT oa.id, oa.codi, oa.descripcio_completa AS description, payo.display_order
                      FROM project_academic_year_objectius payo
                      INNER JOIN objectius_aprenentatge oa ON oa.id = payo.objectiu_id
                      WHERE payo.project_academic_year_id = :edition_id
@@ -382,22 +382,59 @@ class PublicController
                 $stmt->execute(['edition_id' => $editionId]);
                 $objectives = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } else {
-                $stmt = $pdo->query('SELECT id, codi, titol AS description, 0 AS display_order FROM objectius_aprenentatge ORDER BY codi ASC');
+                $stmt = $pdo->query('SELECT id, codi, descripcio_completa AS description, 0 AS display_order FROM objectius_aprenentatge ORDER BY codi ASC');
                 $objectives = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
 
             if ($objectives !== []) {
                 $objIds = array_map(static fn (array $o): int => (int) $o['id'], $objectives);
                 $placeholders = implode(',', array_fill(0, count($objIds), '?'));
-                $indStmt = $pdo->prepare("SELECT objectiu_id, color_semafor, descriptor FROM indicadors_assoliment WHERE objectiu_id IN ({$placeholders})");
-                $indStmt->execute($objIds);
-                $indicatorsByObj = [];
-                foreach ($indStmt->fetchAll(PDO::FETCH_ASSOC) as $ind) {
-                    $indicatorsByObj[(int) $ind['objectiu_id']][(string) $ind['color_semafor']] = (string) $ind['descriptor'];
+                $criteriaStmt = $pdo->prepare(
+                    "SELECT id, objectiu_id, descripcio_completa, descripcio_simplificada
+                       FROM criteris_assoliment
+                      WHERE objectiu_id IN ({$placeholders})
+                      ORDER BY objectiu_id ASC, id ASC"
+                );
+                $criteriaStmt->execute($objIds);
+                $criteriaByObjective = [];
+                $criteriaById = [];
+                $criterionIds = [];
+                foreach ($criteriaStmt->fetchAll(PDO::FETCH_ASSOC) as $criterion) {
+                    $criterionId = (int) $criterion['id'];
+                    $criterionIds[] = $criterionId;
+                    $criteriaById[$criterionId] = [
+                        'id' => $criterionId,
+                        'descripcio_completa' => (string) $criterion['descripcio_completa'],
+                        'descripcio_simplificada' => (string) $criterion['descripcio_simplificada'],
+                        'indicators' => [],
+                    ];
+                    $criteriaByObjective[(int) $criterion['objectiu_id']][] = $criterionId;
+                }
+
+                if ($criterionIds !== []) {
+                    $criterionPlaceholders = implode(',', array_fill(0, count($criterionIds), '?'));
+                    $indStmt = $pdo->prepare(
+                        "SELECT criteri_assoliment_id, color_semafor, descriptor_complet, descriptor_simplificat
+                           FROM indicadors_assoliment
+                          WHERE criteri_assoliment_id IN ({$criterionPlaceholders})"
+                    );
+                    $indStmt->execute($criterionIds);
+                    foreach ($indStmt->fetchAll(PDO::FETCH_ASSOC) as $indicator) {
+                        $criterionId = (int) $indicator['criteri_assoliment_id'];
+                        if (isset($criteriaById[$criterionId])) {
+                            $criteriaById[$criterionId]['indicators'][(string) $indicator['color_semafor']] = [
+                                'complet' => (string) $indicator['descriptor_complet'],
+                                'simplificat' => (string) $indicator['descriptor_simplificat'],
+                            ];
+                        }
+                    }
                 }
 
                 foreach ($objectives as &$obj) {
-                    $obj['indicators'] = $indicatorsByObj[(int) $obj['id']] ?? [];
+                    $obj['criteria'] = array_map(
+                        static fn (int $criterionId): array => $criteriaById[$criterionId],
+                        $criteriaByObjective[(int) $obj['id']] ?? []
+                    );
                 }
                 unset($obj);
 

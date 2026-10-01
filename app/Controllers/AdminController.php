@@ -76,6 +76,7 @@ class AdminController
             'classroom',
             'projectes',
             'objectius',
+            'criteris',
             'indicadors',
             'evidencies',
         ];

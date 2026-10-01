@@ -311,6 +311,8 @@ code {
 .button { display: inline-block; margin-right: 1rem; padding: 0.75rem 1rem; background: var(--leaf); color: white; text-decoration: none; border-radius: 6px; }
 .button.secondary, .button--secondary { background: var(--leaf-2); }
 .button--small { font-size: .82rem; margin-right: 0; padding: .42rem .7rem; }
+.criteria-description-toggle { background: var(--paper); border: 1px solid var(--border-soft); color: var(--leaf); }
+.criteria-description-toggle.is-active { background: var(--leaf); border-color: var(--leaf); color: white; }
 .button, .collapse-toggle, .admin-filters__chip { transition: background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease; }
 .status { background: var(--leaf-soft); border-radius: var(--radius-full); color: var(--leaf); display: inline-block; font-size: .875rem; padding: .35rem .65rem; }
 .empty-state { background: white; border-left: 4px solid var(--leaf-2); padding: 1rem 1.25rem; }
@@ -533,10 +535,10 @@ code {
     width: 1.25rem;
     cursor: help;
 }
+.student-achievement-light--blau { background: #2563eb; }
+.student-achievement-light--verd { background: #22c55e; }
+.student-achievement-light--taronja { background: #f97316; }
 .student-achievement-light--vermell { background: #ef4444; }
-.student-achievement-light--groc { background: #facc15; }
-.student-achievement-light--verd_clar { background: #4ade80; }
-.student-achievement-light--verd_fosc { background: #15803d; }
 .student-achievement-light.is-active { box-shadow: 0 0 0 4px rgba(37, 99, 235, .18), 0 0 14px currentColor; opacity: 1; }
 .student-achievement-status { color: var(--muted); font-size: .85rem; margin-left: .35rem; }
 
@@ -1343,6 +1345,52 @@ code {
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     box-shadow: none;
 }
+.indicator-objectives { display: grid; gap: 1.5rem; }
+.indicator-objective__header { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; }
+.indicator-objective__header h3 { color: var(--ink); margin: 0 0 .5rem; }
+.indicator-objective__separator { color: var(--leaf-2); margin: 0 .2rem; }
+.indicator-objective__actions { align-items: flex-end; display: flex; flex-direction: column; gap: .55rem; }
+.indicator-objective__content { margin-top: 1rem; }
+.indicator-objective__identity { align-items: center; display: flex; flex-wrap: wrap; gap: .75rem; justify-content: space-between; margin-bottom: .75rem; }
+.indicator-objective__identity > strong { color: var(--ink); font-size: 1.05rem; }
+.indicator-objective__criteria-count { color: var(--text-secondary); font-size: .9rem; font-weight: 700; margin: .75rem 0; }
+.indicator-objective__descriptions { background: var(--leaf-soft-2); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; padding: .9rem 1rem; }
+.indicator-objective__descriptions [hidden],
+.indicator-descriptor[hidden] { display: none !important; }
+.indicator-objective__descriptions p { line-height: 1.5; margin: 0; }
+.indicator-objective__descriptions p + p { border-top: 1px solid var(--border); margin-top: .75rem; padding-top: .75rem; }
+.indicator-description-toggles { align-items: center; display: flex; flex-wrap: wrap; gap: .4rem; }
+.indicator-description-toggles > span { color: var(--text-secondary); font-size: .85rem; font-weight: 700; }
+.indicator-level-toggles { align-items: center; display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .75rem; }
+.indicator-level-toggles > span { color: var(--text-secondary); font-size: .85rem; font-weight: 700; margin-right: .2rem; }
+.indicator-table-wrapper { border-radius: var(--radius); }
+.achievement-indicators-table { min-width: 920px; table-layout: fixed; }
+.achievement-indicators-table th:first-child,
+.achievement-indicators-table td:first-child { width: 105px; }
+.indicator-table__color-heading { color: var(--ink); text-align: center; }
+.indicator-table__color-heading small { display: block; font-size: .7rem; font-weight: 500; margin-top: .2rem; opacity: .75; }
+.indicator-table__color-heading--blau { background: #dbeafe !important; color: #1d4ed8 !important; }
+.indicator-table__color-heading--verd { background: #dcfce7 !important; color: #166534 !important; }
+.indicator-table__color-heading--taronja { background: #ffedd5 !important; color: #c2410c !important; }
+.indicator-table__color-heading--vermell { background: #fee2e2 !important; color: #991b1b !important; }
+.indicator-table__criterion { background: var(--paper); vertical-align: top; }
+.indicator-table__criterion strong { display: block; font-size: 1rem; margin-bottom: .6rem; }
+.indicator-cell { border: 1px solid rgba(255,255,255,.85) !important; color: var(--ink); min-height: 116px; padding: .85rem !important; vertical-align: top; }
+.indicator-cell--blau { background: #eff6ff; }
+.indicator-cell--verd { background: #f0fdf4; }
+.indicator-cell--taronja { background: #fff7ed; }
+.indicator-cell--vermell { background: #fff1f2; }
+.indicator-cell__content { font-size: .88rem; line-height: 1.45; }
+.indicator-cell__content span { display: block; }
+.indicator-descriptor + .indicator-descriptor { border-top: 1px solid rgba(71,98,74,.18); margin-top: .65rem; padding-top: .65rem; }
+.indicator-descriptor strong { display: block; font-size: .7rem; letter-spacing: .04em; margin-bottom: .2rem; text-transform: uppercase; }
+.indicator-editor-grid { display: grid; gap: .75rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.indicator-editor__field { border: 1px solid var(--border-soft); border-radius: var(--radius); padding: .75rem; }
+.indicator-editor__field--blau { border-top: 4px solid #2563eb; }
+.indicator-editor__field--verd { border-top: 4px solid #22c55e; }
+.indicator-editor__field--taronja { border-top: 4px solid #f97316; }
+.indicator-editor__field--vermell { border-top: 4px solid #ef4444; }
+.indicator-editor__field label + label { margin-top: .65rem; }
 .evidence-admin-section { margin-top: 1.5rem; }
 .evidence-entry-form { display: grid; gap: 1rem; }
 .evidence-entry-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1963,6 +2011,10 @@ code {
     .admin-chart-grid { grid-template-columns: 1fr; }
     .admin-geo-map-layout { grid-template-columns: 1fr; }
     .admin-geo-map { height: 320px; }
+    .indicator-objective__header { flex-direction: column; }
+    .indicator-objective__actions { align-items: flex-start; width: 100%; }
+    .indicator-description-toggles { justify-content: flex-start; }
+    .indicator-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 
@@ -1977,6 +2029,7 @@ code {
     .admin-summary__section-grid--three { grid-template-columns: 1fr; }
     .admin-summary__body { padding-right: 3.5rem; }
     .student-dashboard__text { white-space: normal; }
+    .indicator-editor-grid { grid-template-columns: 1fr; }
     .site-header { align-items: flex-start; padding: .85rem 1rem; }
     .site-header__nav { justify-content: flex-start; }
     .site-header__user { flex-basis: 100%; }

@@ -14,6 +14,8 @@ ob_start();
 /** @var mixed $userAvatarPreview */
 /** @var mixed $projectAcademicYears */
 /** @var mixed $objectives */
+/** @var mixed $criteria */
+/** @var mixed $criteriaByObjective */
 /** @var mixed $indicators */
 /** @var mixed $projectYearObjectivesMap */
 /** @var mixed $studentsWithTeams */
@@ -74,6 +76,8 @@ $activeProjectsCount = count(array_filter($projects, static fn (array $project):
 $activeClassroomsCount = count(array_filter($classrooms, static fn (array $classroom): bool => (int) ($classroom['is_active'] ?? 0) === 1));
 $projectAcademicYears = is_array($projectAcademicYears ?? null) ? $projectAcademicYears : [];
 $objectives = is_array($objectives ?? null) ? $objectives : [];
+$criteria = is_array($criteria ?? null) ? $criteria : [];
+$criteriaByObjective = is_array($criteriaByObjective ?? null) ? $criteriaByObjective : [];
 $indicators = is_array($indicators ?? null) ? $indicators : [];
 $projectYearObjectivesMap = is_array($projectYearObjectivesMap ?? null) ? $projectYearObjectivesMap : [];
 $studentsWithTeams = is_array($studentsWithTeams ?? null) ? $studentsWithTeams : [];
@@ -218,7 +222,7 @@ $renderObjectiveChoices = static function (array $selectedObjIds = [], ?int $edi
     foreach ($filtered as $obj) {
         $objId = (int) ($obj['id'] ?? 0);
         $codi = (string) ($obj['codi'] ?? '');
-        $titol = (string) ($obj['titol'] ?? '');
+        $titol = (string) ($obj['descripcio_simplificada'] ?? $obj['descripcio_completa'] ?? '');
         ?>
         <label class="form__choice" style="align-items: flex-start; gap: .5rem; margin-bottom: .5rem;">
             <input type="checkbox" name="objective_ids[]" value="<?= $objId ?>" <?= in_array($objId, $selectedObjIds, true) ? 'checked' : '' ?> style="margin-top: .25rem;">
@@ -261,24 +265,10 @@ if (is_string($requestedSection ?? null) && $requestedSection !== '') {
             <a href="<?= url('admin') ?>?section=grups-alumnes" data-dashboard-section="grups-alumnes">Equips</a>
             <a href="<?= url('admin') ?>?section=classroom" data-dashboard-section="classroom">Classroom</a>
             <a href="<?= url('admin') ?>?section=projectes" data-dashboard-section="projectes">Projectes</a>
-            <div class="admin-layout__nav-group" data-nav-group>
-                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="objectius-submenu" data-dashboard-section="objectius" aria-expanded="false" aria-controls="objectius-submenu">
-                    Objectius
-                </button>
-                <div class="admin-layout__submenu" id="objectius-submenu" hidden>
-                    <a href="<?= url('admin') ?>?section=objectius#objectius" data-dashboard-section="objectius">Objectius</a>
-                    <a href="<?= url('admin') ?>?section=indicadors#indicadors" data-dashboard-section="indicadors">Indicadors</a>
-                </div>
-            </div>
-            <div class="admin-layout__nav-group" data-nav-group>
-                <button class="admin-layout__nav-toggle" type="button" data-nav-group-toggle="evidencies-submenu" data-dashboard-section="evidencies" aria-expanded="false" aria-controls="evidencies-submenu">
-                    Evidències
-                </button>
-                <div class="admin-layout__submenu" id="evidencies-submenu" hidden>
-                    <a href="<?= url('admin') ?>?section=evidencies#categories-evidencies" data-dashboard-section="evidencies">Categories</a>
-                    <a href="<?= url('admin') ?>?section=evidencies#tipus-evidencies" data-dashboard-section="evidencies">Tipus</a>
-                </div>
-            </div>
+            <a href="<?= url('admin') ?>?section=objectius#objectius" data-dashboard-section="objectius">Objectius d'aprenentatge (OA)</a>
+            <a href="<?= url('admin') ?>?section=criteris#criteris" data-dashboard-section="criteris">Criteris d'assoliment (CA) dels OA</a>
+            <a href="<?= url('admin') ?>?section=indicadors#indicadors" data-dashboard-section="indicadors">Indicadors d'assoliment</a>
+            <a href="<?= url('admin') ?>?section=evidencies#evidencies" data-dashboard-section="evidencies">Evidències</a>
         </nav>
     </aside>
 
@@ -337,6 +327,8 @@ if (is_string($requestedSection ?? null) && $requestedSection !== '') {
         <?php include __DIR__ . '/partials/projectes.php'; ?>
 
         <?php include __DIR__ . '/partials/objectius.php'; ?>
+
+        <?php include __DIR__ . '/partials/criteris.php'; ?>
 
         <?php include __DIR__ . '/partials/indicadors.php'; ?>
 

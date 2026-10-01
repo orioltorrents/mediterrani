@@ -55,6 +55,8 @@ class AdminActionService
         $objectiveHandlers = [
             'create_objective' => 'createObjective',
             'update_objective' => 'updateObjective',
+            'create_criterion' => 'createCriterion',
+            'update_criterion' => 'updateCriterion',
             'sync_project_objectives' => 'syncProjectYearObjectives',
             'update_objective_indicators' => 'updateIndicators',
         ];

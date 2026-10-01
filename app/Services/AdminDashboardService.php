@@ -31,6 +31,8 @@ class AdminDashboardService
         $projectAcademicYears = $this->projectAcademicYears();
         $objectivesService = new AdminObjectivesService($this->pdo);
         $objectives = $objectivesService->objectives();
+        $criteria = $objectivesService->criteria();
+        $criteriaByObjective = $objectivesService->criteriaByObjective();
         $projectYearObjectivesMap = $objectivesService->projectYearObjectivesMap();
         $indicators = $objectivesService->indicators();
         $teamService = new AdminTeamService($this->pdo);
@@ -185,6 +187,8 @@ class AdminDashboardService
             'roleMap' => $roleMap,
             'analytics' => $analytics,
             'objectives' => $objectives,
+            'criteria' => $criteria,
+            'criteriaByObjective' => $criteriaByObjective,
             'projectYearObjectivesMap' => $projectYearObjectivesMap,
             'indicators' => $indicators,
             'studentsWithTeams' => $studentsWithTeams,

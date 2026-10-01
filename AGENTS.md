@@ -325,6 +325,7 @@ classrooms
 classroom_members
 
 objectius_aprenentatge
+criteris_assoliment
 indicadors_assoliment
 project_academic_year_objectius
 student_indicador_assoliment
@@ -334,7 +335,7 @@ evidencies_tipus
 evidencies_alumnes
 ```
 
-Aquest inventari conté 30 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
+Aquest inventari conté 31 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
 
 Per reconstruir una base neta, cal executar des de l'arrel:
 
@@ -386,7 +387,8 @@ Estats d'edició:
 Objectius i assoliment:
 
 - `objectius_aprenentatge` defineix els objectius base;
-- `indicadors_assoliment` defineix els descriptors i colors del semàfor per objectiu;
+- `criteris_assoliment` defineix els criteris vinculats a cada objectiu;
+- `indicadors_assoliment` defineix els descriptors complet i simplificat i els colors del semàfor per criteri;
 - `project_academic_year_objectius` assigna objectius a una edició concreta;
 - `student_indicador_assoliment` guarda el nivell seleccionat per alumne, objectiu i edició, inclòs el professor que l'ha avaluat;
 - `evidencies_categoria` defineix les categories de procés, producte i metacognició;
