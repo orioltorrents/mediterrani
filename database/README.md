@@ -13,7 +13,7 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 
 ## Esquema actual
 
-`schema.sql` crea 31 taules. La base local actual ha d'incloure aquestes 31 taules.
+`schema.sql` crea 32 taules. La base local actual ha d'incloure aquestes 32 taules.
 
 ### Usuaris i accés
 
@@ -44,6 +44,10 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 - `project_team_member_roles`
 - `project_sections`
 
+### Contingut públic global
+
+- `site_pages`
+
 ### Objectius i assoliment
 
 - `objectius_aprenentatge`
@@ -63,6 +67,8 @@ La base de dades es va iniciar de zero a partir d'una còpia del codi d'Entorns 
 - `classrooms`
 - `classroom_members`
 - `site_visits`
+
+`site_pages` guarda contingut públic global, inclòs el contingut sincronitzat opcionalment des de Google Docs. La sincronització real amb l'API continua depenent de la configuració de Google i no converteix aquesta taula en una font pública directa sense passar pel servei de l'aplicació.
 
 ## Relacions principals
 
@@ -172,8 +178,13 @@ Migracions disponibles:
 | `20260919_create_evidencies.sql` | Crea categories, tipus i evidències d'alumnes. | Relaciona cada evidència amb usuari, edició i objectiu. |
 | `20260919_add_current_schema_indexes_and_fks.sql` | Completa índexs i claus foranes del model actual. | Requereix comprovar abans que `project_team_members` no contingui classes o rols orfes. |
 | `20260928_add_site_visit_coordinates.sql` | Afegeix coordenades aproximades a les visites. | Necessària perquè el mapa pugui representar ubicacions fora del catàleg de països de fallback. |
+| `20261001_add_criteri_code.sql` | Afegeix el codi opcional als criteris d'assoliment. | Requereix que `criteris_assoliment` ja existeixi. |
+| `20261001_fix_objective_simplified_description_length.sql` | Canvia la descripció simplificada de l'objectiu a `TEXT`. | Requereix que `objectius_aprenentatge.descripcio_simplificada` ja existeixi. |
+| `20261001_create_site_pages.sql` | Crea el magatzem de pàgines públiques i l'estat opcional de sincronització Google Docs. | No elimina dades; utilitza `CREATE TABLE IF NOT EXISTS`. |
 
 Les migracions no disposen actualment d'una taula de control automàtic. Abans d'aplicar-ne una, cal comprovar manualment si el canvi ja existeix per evitar columnes, claus o índexs duplicats.
+
+El model actual d'indicadors es basa en `criteris_assoliment` i en els camps `descriptor_complet` i `descriptor_simplificat` d'`indicadors_assoliment`. No hi ha una migració automàtica per convertir una instal·lació antiga que guardés els indicadors directament a `objectiu_id` o en un únic camp `descriptor`; aquesta conversió requereix revisar i mapar les dades abans d'executar cap SQL. Per a una base nova, la font correcta continua sent `schema.sql`.
 
 ## Taules heretades o futures
 
@@ -184,9 +195,9 @@ La documentació procedent d'Entorns de Natura pot mencionar taules relacionades
 - avaluacions avançades;
 - webhooks de Classroom;
 - sincronització amb Google Docs i Google Sheets;
-- configuració i pàgines del lloc.
+- configuració i altres pàgines del lloc.
 
-Aquestes taules no formen part de l'esquema executable actual mentre no apareguin a `schema.sql` o en una migració nova. Abans de recuperar una funcionalitat antiga, cal revisar el model i adaptar-lo a Mediterrani; no s'ha de copiar automàticament l'esquema anterior.
+Aquestes taules no formen part de l'esquema executable actual mentre no apareguin a `schema.sql` o en una migració nova. `site_pages` és l'excepció ja incorporada al model actual per al contingut públic global. Abans de recuperar qualsevol altra funcionalitat antiga, cal revisar el model i adaptar-lo a Mediterrani; no s'ha de copiar automàticament l'esquema anterior.
 
 ## Criteris per a canvis futurs
 

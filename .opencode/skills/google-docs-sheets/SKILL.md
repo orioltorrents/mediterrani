@@ -5,7 +5,7 @@ description: Use when designing or changing Mediterrani Google Docs, Google Shee
 
 # Skill 05 — Google Docs i Google Sheets
 
-> **Estat verificat 2026-10-01:** `database/schema.sql` no conté taules `google_*`, `documents_*`, `site_pages`, staging de webhooks ni taules d'avaluació avançada. Les seccions que descriuen aquests models s'han d'entendre com a referència històrica o proposta de redisseny, no com a funcionalitat actual operativa.
+> **Estat verificat 2026-10-01:** `database/schema.sql` conté `site_pages` per al contingut públic global. No conté taules `google_*`, `documents_*`, staging de webhooks ni taules d'avaluació avançada. Aquestes últimes seccions s'han d'entendre com a referència històrica o proposta de redisseny.
 
 ## Objectiu
 
@@ -22,6 +22,7 @@ La web ha de mostrar aquesta informació de manera controlada, segura i estructu
 - servei `GoogleSyncService` present com a stub de consulta, sense connexió real amb l'API;
 - model bàsic de Classroom amb `classrooms` i `classroom_members`;
 - model d'evidències amb `evidencies_categoria`, `evidencies_tipus` i `evidencies_alumnes`;
+- persistència de pàgines públiques globals a `site_pages`, amb estat de sincronització opcional;
 - quan el contingut és d'una edició concreta, la unitat funcional és `project_academic_years`.
 
 ### Encara previst
@@ -50,9 +51,9 @@ Web pública / alumnat / professorat / administració
 
 ---
 
-## Flux històric per pàgines públiques globals
+## Flux actual per pàgines públiques globals
 
-`site_pages` no forma part de l'esquema actual de Mediterrani. El flux següent procedeix del projecte anterior i s'hauria de redissenyar abans de recuperar-lo.
+`site_pages` forma part de l'esquema actual de Mediterrani per conservar contingut públic global i l'estat d'una sincronització opcional amb Google Docs.
 
 Flux històric:
 
@@ -105,7 +106,7 @@ L'estat del projecte s'ha de llegir en tres nivells diferents:
 ```text
 1. Importació manual JSON de documents → històrica o pendent de revalidar amb l'esquema actual.
 2. Persistència Google Workspace       → pendent de modelar.
-3. API Google Docs per site_pages      → històrica; `site_pages` no existeix a l'esquema actual.
+3. API Google Docs per site_pages      → disponible com a flux de servei, amb integració real condicionada a la configuració de Google.
 4. API Google per projectes i Sheets   → pendent.
 ```
 

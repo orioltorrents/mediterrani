@@ -328,6 +328,46 @@ foreach ($editionScopedTables as $table => $rules) {
     }
 }
 
+$sitePagesRules = [
+    'requiredColumns' => [
+        'slug',
+        'language_code',
+        'title',
+        'google_file_id',
+        'content_json',
+        'plain_text',
+        'version_hash',
+        'last_synced_at',
+        'last_sync_status',
+        'last_sync_error',
+        'is_active',
+    ],
+    'uniqueIndexes' => [['slug', 'language_code']],
+    'indexes' => [['is_active', 'slug', 'language_code'], ['google_file_id']],
+];
+
+if (!tableExists($pdo, 'site_pages')) {
+    $errors[] = 'Falta la taula requerida site_pages.';
+} else {
+    foreach ($sitePagesRules['requiredColumns'] as $column) {
+        if (!columnExists($pdo, 'site_pages', $column)) {
+            $errors[] = "site_pages: falta la columna requerida {$column}.";
+        }
+    }
+
+    foreach ($sitePagesRules['uniqueIndexes'] as $columns) {
+        if (!indexExistsWithColumns($pdo, 'site_pages', $columns, true)) {
+            $errors[] = 'site_pages: falta UNIQUE(' . implode(', ', $columns) . ').';
+        }
+    }
+
+    foreach ($sitePagesRules['indexes'] as $columns) {
+        if (!indexExistsWithColumns($pdo, 'site_pages', $columns, false)) {
+            $errors[] = "site_pages: falta l'index(" . implode(', ', $columns) . ").";
+        }
+    }
+}
+
 if ($errors !== []) {
     fwrite(STDERR, "Errors de coherencia detectats:\n");
     foreach ($errors as $error) {

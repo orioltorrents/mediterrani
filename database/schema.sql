@@ -8,6 +8,7 @@ SET FOREIGN_KEY_CHECKS = 0;
     evidencies_tipus, evidencies_categoria,
     project_team_member_roles, project_team_members, project_teams, project_sections, project_class_assignments,
     project_academic_years, project_translations, projects, project_roles, classroom_members, classrooms, class_member_history,
+    site_pages,
     class_members, class_teachers, classes, academic_years, site_visits, login_attempts, user_activation_tokens, user_web_roles,
     web_roles, languages, users;
 
@@ -238,6 +239,26 @@ CREATE TABLE project_sections (
     UNIQUE KEY uq_project_section (project_id, section_key),
     KEY idx_sections_project (project_id), KEY idx_sections_order (display_order),
     CONSTRAINT fk_sections_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE site_pages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(120) NOT NULL,
+    language_code VARCHAR(10) NOT NULL DEFAULT 'ca',
+    title VARCHAR(255) NOT NULL,
+    google_file_id VARCHAR(255) NULL,
+    content_json LONGTEXT NULL,
+    plain_text LONGTEXT NULL,
+    version_hash CHAR(64) NULL,
+    last_synced_at DATETIME NULL,
+    last_sync_status ENUM('never', 'completed', 'failed') NOT NULL DEFAULT 'never',
+    last_sync_error TEXT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_site_pages_slug_language (slug, language_code),
+    KEY idx_site_pages_active_slug_language (is_active, slug, language_code),
+    KEY idx_site_pages_google_file_id (google_file_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE evidencies_categoria (

@@ -541,6 +541,24 @@ code {
 .student-achievement-light--vermell { background: #ef4444; }
 .student-achievement-light.is-active { box-shadow: 0 0 0 4px rgba(37, 99, 235, .18), 0 0 14px currentColor; opacity: 1; }
 .student-achievement-status { color: var(--muted); font-size: .85rem; margin-left: .35rem; }
+.student-objectives-list { display: grid; gap: 1rem; margin-top: 1.5rem; }
+.student-objective { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.student-objective__header { align-items: center; background: var(--leaf-soft-2); display: flex; gap: 1rem; justify-content: space-between; padding: 1rem 1.15rem; }
+.student-objective__title-group { align-items: center; display: flex; flex-wrap: wrap; gap: .65rem; min-width: 0; }
+.student-objective__title-group h2 { color: var(--ink); font-size: 1.15rem; margin: 0; }
+.student-objective__code { flex: 0 0 auto; }
+.student-objective__toggle { flex: 0 0 auto; }
+.student-objective__content { max-height: 10000px; opacity: 1; overflow: hidden; padding: 1.25rem; transition: max-height .35s ease, opacity .2s ease, padding .35s ease; }
+.student-objective.is-collapsed .student-objective__content { max-height: 0; opacity: 0; padding-bottom: 0; padding-top: 0; }
+.student-objective__description { color: var(--text-body); font-size: 1.05rem; line-height: 1.65; margin: 0 0 1.25rem; }
+.student-criterion { border-top: 1px solid var(--line); padding-top: 1.15rem; }
+.student-criterion + .student-criterion { margin-top: 1.25rem; }
+.student-criterion h3 { color: var(--ink); font-size: 1rem; margin: 0 0 .45rem; }
+.student-criterion__description { color: var(--text-body); line-height: 1.55; margin: 0; }
+.student-indicators { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1rem; }
+.student-indicator { background: var(--student-indicator-background); border: 3px solid var(--student-indicator-border); border-radius: .75rem; min-height: 7rem; padding: 1rem; }
+.student-indicator.is-active { box-shadow: 0 0 0 4px rgba(31, 45, 31, .18); }
+.student-indicator p { color: var(--ink); line-height: 1.5; margin: 0; }
 
 .public-project-detail {
     background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
@@ -2029,6 +2047,9 @@ code {
     .admin-summary__section-grid--three { grid-template-columns: 1fr; }
     .admin-summary__body { padding-right: 3.5rem; }
     .student-dashboard__text { white-space: normal; }
+    .student-objective__header { align-items: flex-start; flex-direction: column; }
+    .student-objective__toggle { align-self: flex-start; }
+    .student-indicators { grid-template-columns: 1fr; }
     .indicator-editor-grid { grid-template-columns: 1fr; }
     .site-header { align-items: flex-start; padding: .85rem 1rem; }
     .site-header__nav { justify-content: flex-start; }

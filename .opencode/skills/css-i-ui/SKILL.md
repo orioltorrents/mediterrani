@@ -77,20 +77,26 @@ Regla pràctica actual:
 
 No fer una reescriptura completa si una refactorització incremental resol el problema.
 
-### Components de semàfor
+### Components d'assoliment
 
-El semàfor d'objectius mostra els colors configurats pels indicadors i només exposa el descriptor en el tooltip de cada llum. La vista de l'alumne no ha de mostrar la llista completa de descriptors sota l'objectiu, perquè aquest espai queda reservat per a les evidències.
+La vista d'objectius de l'alumnat mostra el redactat simplificat de l'OA i dels CA. Els descriptors simplificats dels indicadors es mostren en targetes de color, sense exposar els codis `AE`, `AN`, `AS` o `NA`; el nivell actual es ressalta visualment sense una nota textual.
+
+La vista pública no ha de mostrar descriptors complets ni dades d'avaluació sensibles. Els controls de la vista d'alumnat han de continuar sent llegibles i funcionals en mòbil.
 
 Classes actuals:
 
 ```text
-student-achievement-lights
-student-achievement-light
-student-achievement-light--vermell
-student-achievement-light--groc
-student-achievement-light--verd_clar
-student-achievement-light--verd_fosc
-student-achievement-light.is-active
+student-objectives-list
+student-objective
+student-objective__header
+student-objective__content
+student-criterion
+student-indicators
+student-indicator
+student-indicator--blau
+student-indicator--verd
+student-indicator--taronja
+student-indicator--vermell
 ```
 
 ---

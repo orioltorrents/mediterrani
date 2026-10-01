@@ -72,6 +72,7 @@ El nom canònic de la base de dades local és `mediterrani`. La connexió llegei
 - `academic_years`, `classes`, `class_members`, `class_member_history`, `class_teachers`;
 - `projects`, `project_translations`, `project_academic_years`, `project_class_assignments`;
 - `project_sections`;
+- `site_pages` per al contingut públic global i l'estat opcional de sincronització amb Google Docs;
 - `objectius_aprenentatge`, `criteris_assoliment`, `indicadors_assoliment`, `project_academic_year_objectius`, `student_indicador_assoliment`;
 - `evidencies_categoria`, `evidencies_tipus`, `evidencies_alumnes`;
 - `project_teams`, `project_team_members`, `project_team_member_roles`;

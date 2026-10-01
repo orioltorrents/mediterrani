@@ -6,10 +6,10 @@ $studentEvaluations = is_array($studentEvaluations ?? null) ? $studentEvaluation
 $editionQuery = isset($projectAcademicYearId) && $projectAcademicYearId > 0 ? '?edicio=' . (int) $projectAcademicYearId : '';
 
 $colorMeta = [
-    'blau' => ['label' => 'Assoliment excel·lent', 'bg' => '#eff6ff', 'border' => '#bfdbfe', 'color' => '#1d4ed8'],
-    'verd' => ['label' => 'Assoliment notable', 'bg' => '#f0fdf4', 'border' => '#bbf7d0', 'color' => '#15803d'],
-    'taronja' => ['label' => 'Assoliment satisfactori', 'bg' => '#fff7ed', 'border' => '#fed7aa', 'color' => '#c2410c'],
-    'vermell' => ['label' => 'No assolit', 'bg' => '#fef2f2', 'border' => '#fecaca', 'color' => '#b91c1c'],
+    'blau' => ['background' => '#dbeafe', 'border' => '#2563eb'],
+    'verd' => ['background' => '#dcfce7', 'border' => '#16a34a'],
+    'taronja' => ['background' => '#ffedd5', 'border' => '#ea580c'],
+    'vermell' => ['background' => '#fee2e2', 'border' => '#dc2626'],
 ];
 ?>
 <div class="public-project-detail">
@@ -22,35 +22,57 @@ $colorMeta = [
         <h1 class="public-project-detail__title"><?= htmlspecialchars((string) ($project['title'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h1>
     </header>
 
-    <div class="card" style="margin-top: 1.5rem; padding: 1.5rem;">
+    <div class="student-objectives-list">
         <?php if ($objectives !== []): ?>
-            <div style="display: grid; gap: 1.75rem;">
-                <?php foreach ($objectives as $index => $obj): ?>
-                    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem;">
-                            <span class="pill" style="font-size: .9rem; padding: .3rem .75rem;"><?= htmlspecialchars((string) ($obj['codi'] ?? 'OA'), ENT_QUOTES, 'UTF-8') ?></span>
-                            <h2 style="margin: 0; color: var(--ink); font-size: 1.2rem;">Objectiu d'aprenentatge <?= $index + 1 ?></h2>
+            <?php foreach ($objectives as $index => $obj): ?>
+                <?php
+                $objectiveId = (int) ($obj['id'] ?? 0);
+                $objectiveCode = trim((string) ($obj['codi'] ?? ''));
+                $objectiveContentId = 'student-objective-content-' . $objectiveId;
+                $activeColor = (string) ($studentEvaluations[$objectiveId] ?? '');
+                ?>
+                <section class="student-objective collapsible-card is-collapsed">
+                    <header class="student-objective__header">
+                        <div class="student-objective__title-group">
+                            <?php if ($objectiveCode !== ''): ?>
+                                <span class="pill student-objective__code"><?= htmlspecialchars($objectiveCode, ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php endif; ?>
+                            <h2>Objectiu d'aprenentatge <?= $index + 1 ?></h2>
                         </div>
-                        <p style="margin-top: 0; margin-bottom: 1.25rem; line-height: 1.6; color: var(--text-body); font-size: 1.08rem; font-weight: 500;"><?= htmlspecialchars((string) ($obj['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php $activeColor = (string) ($studentEvaluations[(int) ($obj['id'] ?? 0)] ?? ''); ?>
-                        <?php foreach (($obj['criteria'] ?? []) as $criterion): ?>
-                            <div style="margin-top: 1rem; padding: 1rem; border-left: 3px solid var(--leaf); background: var(--surface);">
-                                <strong>Criteri d'assoliment</strong>
-                                <p style="margin: .35rem 0; color: var(--text-body);"><?= htmlspecialchars((string) ($criterion['descripcio_simplificada'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
-                                <div class="student-achievement-lights" aria-label="Estat d'assoliment">
-                                    <?php foreach ($colorMeta as $colorKey => $meta): ?>
-                                        <?php $indicator = $criterion['indicators'][$colorKey] ?? []; ?>
-                                        <?php $descriptor = (string) ($indicator['simplificat'] ?? ''); ?>
-                                        <span class="student-achievement-light student-achievement-light--<?= htmlspecialchars($colorKey, ENT_QUOTES, 'UTF-8') ?><?= $activeColor === $colorKey ? ' is-active' : '' ?>" title="<?= htmlspecialchars($meta['label'] . ($descriptor !== '' ? ': ' . $descriptor : ''), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($meta['label'] . ($descriptor !== '' ? ': ' . $descriptor : ''), ENT_QUOTES, 'UTF-8') ?>"></span>
-                                    <?php endforeach; ?>
-                                    <span class="student-achievement-status"><?= $activeColor !== '' ? 'Nivell actual: ' . htmlspecialchars($colorMeta[$activeColor]['label'] ?? $activeColor, ENT_QUOTES, 'UTF-8') : 'Pendent d’avaluació' ?></span>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                        <button class="collapse-toggle student-objective__toggle" type="button" data-collapse="<?= htmlspecialchars($objectiveContentId, ENT_QUOTES, 'UTF-8') ?>">Mostrar</button>
+                    </header>
 
+                    <div id="<?= htmlspecialchars($objectiveContentId, ENT_QUOTES, 'UTF-8') ?>" class="student-objective__content">
+                        <p class="student-objective__description"><?= htmlspecialchars((string) ($obj['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+
+                        <?php foreach (($obj['criteria'] ?? []) as $criterionIndex => $criterion): ?>
+                            <?php
+                            $criterionCode = trim((string) ($criterion['codi'] ?? ''));
+                            $criterionLabel = $criterionCode !== '' ? $criterionCode : 'Criteri ' . ($criterionIndex + 1);
+                            ?>
+                            <article class="student-criterion">
+                                <h3><?= htmlspecialchars($criterionLabel, ENT_QUOTES, 'UTF-8') ?></h3>
+                                <p class="student-criterion__description"><?= htmlspecialchars((string) ($criterion['descripcio_simplificada'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+
+                                <div class="student-indicators" aria-label="Descriptors simplificats">
+                                    <?php foreach (($criterion['indicators'] ?? []) as $colorKey => $indicator): ?>
+                                        <?php
+                                        $descriptor = trim((string) ($indicator['simplificat'] ?? ''));
+                                        if ($descriptor === '' || !isset($colorMeta[$colorKey])) {
+                                            continue;
+                                        }
+                                        $isActive = $activeColor === $colorKey;
+                                        ?>
+                                        <div class="student-indicator student-indicator--<?= htmlspecialchars($colorKey, ENT_QUOTES, 'UTF-8') ?><?= $isActive ? ' is-active' : '' ?>" style="--student-indicator-background: <?= htmlspecialchars($colorMeta[$colorKey]['background'], ENT_QUOTES, 'UTF-8') ?>; --student-indicator-border: <?= htmlspecialchars($colorMeta[$colorKey]['border'], ENT_QUOTES, 'UTF-8') ?>;" aria-label="Descriptor simplificat"<?= $isActive ? ' aria-current="true"' : '' ?>>
+                                            <p><?= htmlspecialchars($descriptor, ENT_QUOTES, 'UTF-8') ?></p>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
                     </div>
-                <?php endforeach; ?>
-            </div>
+                </section>
+            <?php endforeach; ?>
         <?php else: ?>
             <div class="empty-state">
                 <p>No s'han trobat objectius d'aprenentatge definits per a aquest projecte.</p>

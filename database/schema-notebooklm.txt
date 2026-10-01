@@ -1,3 +1,8 @@
+-- DOCUMENT HISTÒRIC NO EXECUTABLE.
+-- Aquesta còpia conserva un esquema anterior i no reflecteix el model actual.
+-- La font executable és database/schema.sql i el procediment es documenta a
+-- database/README.md. No importar aquest fitxer ni utilitzar-lo per dissenyar
+-- consultes o migracions noves.
 -- Mediterrani: esquema net sense dades inicials.
 -- La base de dades objectiu es configura fora d'aquest fitxer.
 
@@ -397,4 +402,3 @@ CREATE TABLE login_attempts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
-

@@ -320,6 +320,7 @@ project_teams
 project_team_members
 project_team_member_roles
 project_sections
+site_pages
 
 classrooms
 classroom_members
@@ -335,7 +336,7 @@ evidencies_tipus
 evidencies_alumnes
 ```
 
-Aquest inventari conté 31 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
+Aquest inventari conté 32 taules i coincideix amb `database/schema.sql`. Qualsevol altra taula mencionada en documentació històrica s'ha de considerar heretada o prevista, no implementada.
 
 Per reconstruir una base neta, cal executar des de l'arrel:
 
@@ -382,7 +383,7 @@ Estats d'edició:
 
 - els futurs imports d'evidències han d'anar lligats a `project_academic_year_id`;
 - les dades d'evidències i assoliment són privades i no s'han de mostrar públicament;
-- les taules de documents, avaluació avançada, webhooks i sincronització Google de l'antic projecte no formen part de l'esquema actual.
+- les taules de documents, avaluació avançada, webhooks i sincronització Google avançada de l'antic projecte no formen part de l'esquema actual; `site_pages` sí que forma part del model actual per al contingut públic global.
 
 Objectius i assoliment:
 

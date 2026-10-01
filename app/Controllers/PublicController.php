@@ -373,7 +373,7 @@ class PublicController
         try {
             if ($editionId > 0) {
                 $stmt = $pdo->prepare(
-                    'SELECT oa.id, oa.codi, oa.descripcio_completa AS description, payo.display_order
+                    'SELECT oa.id, oa.codi, oa.descripcio_simplificada AS description, payo.display_order
                      FROM project_academic_year_objectius payo
                      INNER JOIN objectius_aprenentatge oa ON oa.id = payo.objectiu_id
                      WHERE payo.project_academic_year_id = :edition_id
@@ -382,16 +382,16 @@ class PublicController
                 $stmt->execute(['edition_id' => $editionId]);
                 $objectives = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } else {
-                $stmt = $pdo->query('SELECT id, codi, descripcio_completa AS description, 0 AS display_order FROM objectius_aprenentatge ORDER BY codi ASC');
+                $stmt = $pdo->query('SELECT id, codi, descripcio_simplificada AS description, 0 AS display_order FROM objectius_aprenentatge ORDER BY codi ASC');
                 $objectives = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
 
             if ($objectives !== []) {
                 $objIds = array_map(static fn (array $o): int => (int) $o['id'], $objectives);
                 $placeholders = implode(',', array_fill(0, count($objIds), '?'));
-                $criteriaStmt = $pdo->prepare(
-                    "SELECT id, objectiu_id, descripcio_completa, descripcio_simplificada
-                       FROM criteris_assoliment
+                    $criteriaStmt = $pdo->prepare(
+                    "SELECT id, objectiu_id, codi, descripcio_simplificada
+                        FROM criteris_assoliment
                       WHERE objectiu_id IN ({$placeholders})
                       ORDER BY objectiu_id ASC, id ASC"
                 );
@@ -404,7 +404,7 @@ class PublicController
                     $criterionIds[] = $criterionId;
                     $criteriaById[$criterionId] = [
                         'id' => $criterionId,
-                        'descripcio_completa' => (string) $criterion['descripcio_completa'],
+                        'codi' => (string) ($criterion['codi'] ?? ''),
                         'descripcio_simplificada' => (string) $criterion['descripcio_simplificada'],
                         'indicators' => [],
                     ];

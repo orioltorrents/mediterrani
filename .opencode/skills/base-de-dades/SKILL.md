@@ -32,7 +32,7 @@ La base de dades ha de permetre gestionar:
 - `project_academic_years` com a unitat funcional per a dades d'edició;
 - seccions configurables de projecte a `project_sections`;
 - taula d'analítica de visites `site_visits`;
-- objectius d'aprenentatge i indicadors d'assoliment per objectiu;
+- objectius d'aprenentatge, criteris d'assoliment i indicadors de semàfor per criteri;
 - avaluació individual a `student_indicador_assoliment`, lligada a usuari, objectiu i edició;
 - equips i membres per projecte a `project_teams`, `project_team_members` i `project_team_member_roles`;
 - Classroom i membres de Classroom;
@@ -40,7 +40,6 @@ La base de dades ha de permetre gestionar:
 
 ### Encara previst
 
-- relació d'evidències concretes amb alumnes, edicions i objectius;
 - importació manual d'evidències des de CSV o Google Sheets;
 - integració real amb Google Workspace;
 - documents, assets, fases, tasques i webhooks de l'antic projecte, pendents de redissenyar;
@@ -95,7 +94,7 @@ DB_CHARSET=utf8mb4
 
 ## Taules actuals
 
-L'esquema executable actual inclou exactament 30 taules:
+L'esquema executable actual inclou exactament 32 taules:
 
 ```text
 users
@@ -120,11 +119,13 @@ project_teams
 project_team_members
 project_team_member_roles
 project_sections
+site_pages
 
 classrooms
 classroom_members
 
 objectius_aprenentatge
+criteris_assoliment
 indicadors_assoliment
 project_academic_year_objectius
 student_indicador_assoliment
@@ -134,7 +135,7 @@ evidencies_tipus
 evidencies_alumnes
 ```
 
-La font canònica és `database/schema.sql`. Qualsevol nom de taula que aparegui més endavant però no sigui en aquesta llista és una proposta heretada o futura, encara que el text històric descrigui el comportament en present.
+La font canònica és `database/schema.sql`. Qualsevol nom de taula que aparegui més endavant però no sigui en aquesta llista és una proposta heretada o futura, encara que el text històric descrigui el comportament en present. `site_pages` és el magatzem actual de contingut públic global; la sincronització real amb Google Docs continua sent opcional i pendent de completar.
 
 `project_groups` és un nom legacy. El model actual utilitza `project_class_assignments`.
 
@@ -355,7 +356,7 @@ evidencies_tipus 1 → N evidencies_alumnes
 
 `evidencies_categoria` defineix les agrupacions visuals amb nom, descripció i color. Les categories inicials són procés, producte i metacognitiva. `evidencies_tipus` defineix el catàleg de formes concretes d'evidència que mostra el dashboard d'administració.
 
-`evidencies_alumnes` representa evidències concretes i les relaciona amb `users`, `project_academic_years`, `objectius_aprenentatge`, categoria i tipus. Encara falta dissenyar la font d'importació i, si correspon, una relació amb tasques.
+`evidencies_alumnes` representa evidències concretes i les relaciona amb `users`, `project_academic_years`, `objectius_aprenentatge`, categoria i tipus. La font d'importació des de CSV o Google Sheets continua pendent de disseny i, si correspon, també una relació amb tasques.
 
 ## Documents (model heretat, no implementat)
 
