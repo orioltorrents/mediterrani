@@ -20,6 +20,7 @@ require_once dirname(__DIR__) . '/app/Services/ProjectAssignmentService.php';
 require_once dirname(__DIR__) . '/app/Services/ProjectService.php';
 require_once dirname(__DIR__) . '/app/Services/AssessmentService.php';
 require_once dirname(__DIR__) . '/app/Services/AssessmentStructureImportService.php';
+require_once dirname(__DIR__) . '/app/Services/GeoIpService.php';
 require_once dirname(__DIR__) . '/app/Services/AnalyticsService.php';
 require_once dirname(__DIR__) . '/app/Services/AdminActionService.php';
 require_once dirname(__DIR__) . '/app/Services/AdminAssessmentStructureService.php';

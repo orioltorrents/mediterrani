@@ -379,11 +379,14 @@ CREATE TABLE site_visits (
     ip_address VARCHAR(45) NULL,
     country_code VARCHAR(10) NULL,
     region VARCHAR(100) NULL,
+    latitude DECIMAL(9, 6) NULL,
+    longitude DECIMAL(9, 6) NULL,
     device_type VARCHAR(50) NULL,
     os_family VARCHAR(50) NULL,
     browser VARCHAR(50) NULL,
     user_agent TEXT NULL,
     KEY idx_visits_user (user_id), KEY idx_visits_date (visited_at), KEY idx_visits_path (path),
+    KEY idx_visits_geo (country_code, region, latitude, longitude),
     CONSTRAINT fk_visits_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

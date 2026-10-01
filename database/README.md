@@ -120,6 +120,8 @@ project_academic_years 1 ---- N classrooms
 classrooms N ---- N users, mitjançant classroom_members
 ```
 
+Les visites amb una IP pública es poden geolocalitzar aproximadament amb el servei HTTPS d'ipwho.is. Els resultats es desen durant 30 dies a `storage/cache/geoip/`; les IP privades no s'envien i els errors temporals es memoritzen durant una hora. Es pot desactivar aquesta consulta amb `GEOIP_ENABLED=false` a `.env`. En entorns XAMPP, `GEOIP_CA_BUNDLE_PATH` pot indicar el paquet CA; per defecte s'utilitza `storage/certs/cacert.pem` quan existeix.
+
 ## Reconstrucció d'una base neta
 
 > **Atenció:** `schema.sql` executa `DROP TABLE IF EXISTS`. Importar-lo sobre una base existent elimina les taules afectades i les seves dades.
@@ -164,6 +166,7 @@ Migracions disponibles:
 | `20260918_create_user_activation_tokens.sql` | Crea els tokens d'activació d'usuaris. | La taula queda vinculada a `users` amb eliminació en cascada. |
 | `20260919_create_evidencies.sql` | Crea categories, tipus i evidències d'alumnes. | Relaciona cada evidència amb usuari, edició i objectiu. |
 | `20260919_add_current_schema_indexes_and_fks.sql` | Completa índexs i claus foranes del model actual. | Requereix comprovar abans que `project_team_members` no contingui classes o rols orfes. |
+| `20260928_add_site_visit_coordinates.sql` | Afegeix coordenades aproximades a les visites. | Necessària perquè el mapa pugui representar ubicacions fora del catàleg de països de fallback. |
 
 Les migracions no disposen actualment d'una taula de control automàtic. Abans d'aplicar-ne una, cal comprovar manualment si el canvi ja existeix per evitar columnes, claus o índexs duplicats.
 

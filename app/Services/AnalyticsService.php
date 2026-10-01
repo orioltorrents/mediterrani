@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 class AnalyticsService
 {
+    public function __construct(private ?GeoIpService $geoIpService = null)
+    {
+        $this->geoIpService ??= new GeoIpService();
+    }
+
     public function recordVisit(string $path, array $server, ?int $userId = null): void
     {
         try {
-            $pdo = $this->pdo();
-
             if ($this->shouldSkipTracking($path, $server)) {
                 return;
             }
+
+            $ipAddress = $this->extractIpAddress($server);
+            $geo = $this->geoIpService->lookup($ipAddress);
+            $countryCode = $this->extractCountryCode($server) ?? ($geo['country_code'] ?? null);
+            $region = $this->extractRegion($server) ?? ($geo['region'] ?? null);
+            $pdo = $this->pdo();
 
             $stmt = $pdo->prepare(
                 'INSERT INTO site_visits (
@@ -22,20 +31,24 @@ class AnalyticsService
                     ip_address,
                     country_code,
                     region,
+                    latitude,
+                    longitude,
                     device_type,
                     os_family,
                     browser,
                     user_agent
-                ) VALUES (:session_id, :user_id, NOW(), :path, :ip_address, :country_code, :region, :device_type, :os_family, :browser, :user_agent)'
+                ) VALUES (:session_id, :user_id, NOW(), :path, :ip_address, :country_code, :region, :latitude, :longitude, :device_type, :os_family, :browser, :user_agent)'
             );
 
             $stmt->execute([
                 'session_id' => $this->sessionId(),
                 'user_id' => $userId,
                 'path' => $this->normalizePath($path),
-                'ip_address' => $this->extractIpAddress($server),
-                'country_code' => $this->extractCountryCode($server),
-                'region' => $this->extractRegion($server),
+                'ip_address' => $ipAddress,
+                'country_code' => $countryCode,
+                'region' => $region,
+                'latitude' => $geo['latitude'] ?? null,
+                'longitude' => $geo['longitude'] ?? null,
                 'device_type' => $this->detectDeviceType($server),
                 'os_family' => $this->detectOsFamily($server),
                 'browser' => $this->detectBrowser($server),
@@ -122,6 +135,8 @@ class AnalyticsService
             $geoStats = $pdo->query(
                 'SELECT COALESCE(country_code, "Desconegut") AS country_code,
                         COALESCE(region, "Desconegut") AS region,
+                        AVG(latitude) AS latitude,
+                        AVG(longitude) AS longitude,
                         COUNT(*) AS total
                  FROM site_visits
                  GROUP BY country_code, region
@@ -218,8 +233,12 @@ class AnalyticsService
         foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'] as $key) {
             $value = $server[$key] ?? null;
             if (is_string($value) && $value !== '') {
-                $parts = explode(',', $value);
-                return trim((string) $parts[0]);
+                foreach (explode(',', $value) as $candidate) {
+                    $candidate = trim($candidate);
+                    if (filter_var($candidate, FILTER_VALIDATE_IP) !== false) {
+                        return $candidate;
+                    }
+                }
             }
         }
 
@@ -231,7 +250,10 @@ class AnalyticsService
         foreach (['HTTP_CF_IPCOUNTRY', 'GEOIP_COUNTRY_CODE', 'HTTP_X_COUNTRY_CODE'] as $key) {
             $value = $server[$key] ?? null;
             if (is_string($value) && $value !== '') {
-                return strtoupper($value);
+                $countryCode = strtoupper(trim($value));
+                if (preg_match('/^[A-Z]{2}$/', $countryCode) === 1) {
+                    return $countryCode;
+                }
             }
         }
 
@@ -243,7 +265,8 @@ class AnalyticsService
         foreach (['HTTP_CF_REGION', 'GEOIP_REGION', 'HTTP_X_REGION'] as $key) {
             $value = $server[$key] ?? null;
             if (is_string($value) && $value !== '') {
-                return $value;
+                $region = trim($value);
+                return function_exists('mb_substr') ? mb_substr($region, 0, 100) : substr($region, 0, 100);
             }
         }
 

@@ -122,13 +122,17 @@ class AdminDashboardUserService
                 continue;
             }
 
-            $coordinates = $countryCoordinates[$countryCode] ?? null;
+            $latitude = filter_var($row['latitude'] ?? null, FILTER_VALIDATE_FLOAT);
+            $longitude = filter_var($row['longitude'] ?? null, FILTER_VALIDATE_FLOAT);
+            $coordinates = $latitude !== false && $longitude !== false
+                ? [(float) $latitude, (float) $longitude]
+                : ($countryCoordinates[$countryCode] ?? null);
             if ($coordinates === null) {
                 continue;
             }
 
             $region = trim((string) ($row['region'] ?? ''));
-            if ($countryCode === 'ES') {
+            if ($latitude === false && $countryCode === 'ES') {
                 $regionLower = function_exists('mb_strtolower') ? mb_strtolower($region) : strtolower($region);
                 if ($regionLower !== '' && preg_match('/catal|barcel|girona|lleida|tarragon/i', $regionLower) === 1) {
                     $coordinates = [41.3874, 2.1686];
