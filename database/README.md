@@ -192,4 +192,4 @@ Aquestes taules no formen part de l'esquema executable actual mentre no aparegui
 - Utilitzar `project_academic_years` quan una dada depengui del curs concret.
 - No posar SQL de manteniment d'esquema dins controladors PHP.
 - No executar operacions destructives sense còpia de seguretat i confirmació explícita.
-- Actualitzar aquest document i `docs/skills/02-base-de-dades.md` quan canviï l'esquema.
+- Actualitzar aquest document i `.opencode/skills/base-de-dades/SKILL.md` quan canviï l'esquema.

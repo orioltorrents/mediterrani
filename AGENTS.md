@@ -1,5 +1,7 @@
 # AGENTS.md — Mediterrani
 
+Al començament de cada sessió, llegir també [MEMORY.md](MEMORY.md) per recuperar el context, les decisions i els pròxims passos. Seguir les instruccions de «Memòria i continuïtat entre sessions» per mantenir-lo actualitzat.
+
 ## Context del projecte
 
 **Mediterrani** és una aplicació web PHP modular per a projectes educatius de 1ESO.
@@ -151,8 +153,17 @@ mediterrani/
 │   ├── cache/
 │   └── synced/
 │
-├── docs/
+├── .opencode/
 │   └── skills/
+│       ├── arquitectura-php/
+│       ├── base-de-dades/
+│       ├── rutes-i-vistes/
+│       ├── auth-rols-i-seguretat/
+│       ├── google-docs-sheets/
+│       ├── css-i-ui/
+│       └── assets-projectes/
+│
+├── docs/
 │
 ├── index.php
 ├── .env
@@ -160,6 +171,7 @@ mediterrani/
 ├── .gitignore
 ├── composer.json
 ├── README.md
+├── MEMORY.md
 └── AGENTS.md
 ```
 
@@ -176,7 +188,8 @@ mediterrani/
 - La configuració ha d’estar dins `config/`.
 - Els SQL, migracions i seeds han d’estar dins `database/`.
 - Els logs, cache i dades sincronitzades han d’estar dins `storage/`.
-- La documentació i els skills han d’estar dins `docs/`.
+- Les skills d'OpenCode han d'estar dins `.opencode/skills/<nom>/SKILL.md` amb frontmatter `name` i `description`.
+- La documentació general ha d'estar dins `docs/`, excepte els documents d'entrada a l'arrel (`README.md`, `AGENTS.md` i `MEMORY.md`) i la documentació específica de base de dades a `database/README.md`.
 - No crear pàgines PHP soltes per cada projecte.
 - No barrejar HTML, SQL i lògica de negoci dins un mateix fitxer quan es pugui evitar.
 
@@ -703,9 +716,9 @@ Criteris:
 
 ## Autenticació
 
-El login bàsic amb email i contrasenya, sessió, comprovació d'usuari actiu, rols web, CSRF al formulari de login i CSRF a accions sensibles d'admin ja està implementat.
+El login bàsic amb email i contrasenya, sessió, comprovació d'usuari actiu, rols web, CSRF als formularis POST existents revisats, idle timeout, auditoria i rate limiting ja estan implementats.
 
-El login amb Google i l'extensió progressiva de CSRF a qualsevol nova operació sensible continuen pendents.
+El login amb Google continua pendent. Qualsevol nova operació sensible ha d'afegir CSRF des del primer moment.
 
 Camps importants a `users`:
 
@@ -800,7 +813,7 @@ Normes:
 
 ## Rúbriques i notes
 
-El model actual només cobreix objectius, indicadors d'assoliment i el nivell seleccionat per alumne a `student_indicador_assoliment`. La importació de notes, les rúbriques, les puntuacions, les observacions i les evidències vinculades a alumnes encara estan pendents.
+El model actual cobreix objectius, indicadors d'assoliment, el nivell seleccionat per alumne a `student_indicador_assoliment` i evidències vinculades a alumnes i edicions a `evidencies_alumnes`. La importació des de fulls de càlcul, les rúbriques completes, les puntuacions i les observacions d'avaluació continuen pendents.
 
 Taules previstes més endavant:
 
@@ -835,6 +848,41 @@ Abans de modificar fitxers importants:
 5. Prioritzar estabilitat i claredat.
 6. Actualitzar el README quan hi hagi canvis importants.
 7. No fer canvis destructius sense confirmació explícita.
+
+## Memòria i continuïtat entre sessions
+
+`MEMORY.md` és la memòria viva del projecte entre sessions. Conserva el context evolutiu que ajuda a reprendre la feina; les regles, els principis i les restriccions generals es mantenen a `AGENTS.md`.
+
+### A l'inici de la sessió
+
+- Llegir `MEMORY.md` abans de planificar o modificar el projecte.
+- Contrastar les entrades rellevants amb el codi i les fonts canòniques abans de donar-les per vigents. La memòria no substitueix les normes d'aquest fitxer ni l'esquema executable.
+- Si hi ha discrepàncies, deixar-les identificades com a pendents fins a verificar-les; no convertir una hipòtesi o una afirmació històrica en un fet confirmat.
+
+### Quan actualitzar-la
+
+Actualitzar `MEMORY.md` durant la feina o abans de tancar la sessió quan hi hagi:
+
+- una decisió acordada i un motiu que convingui recordar;
+- una funcionalitat o un canvi significatiu completat o parcial;
+- un bloqueig, una discrepància o una pregunta oberta que afecti la continuïtat;
+- un aprenentatge reutilitzable, un error detectat o una solució que eviti repetir-lo;
+- un canvi de prioritats, dependències o pròxims passos;
+- una verificació rellevant que modifiqui l'estat conegut del projecte.
+
+No cal modificar-la per cada lectura, canvi trivial o sessió sense informació nova rellevant.
+
+### Com mantenir-la útil
+
+- Mantenir els quatre apartats: **Estat actual**, **Decisions i el perquè**, **Aprenentatges i errors a evitar** i **Pròxims passos**.
+- Actualitzar la data de l'última modificació i datar les decisions significatives.
+- Escriure entrades breus, concretes i amb referències als fitxers implicats quan ajudin a reprendre la feina.
+- Distingir fets verificats, estat documentat, hipòtesis i propostes pendents d'acord. No donar per acceptada una proposta de l'agent.
+- En una tasca parcial, deixar el punt de represa, els bloquejos i les comprovacions pendents. Si es registren proves, indicar què s'ha executat i quin resultat ha tingut.
+- Actualitzar o retirar entrades obsoletes i compactar els passos completats; conservar el motiu de les decisions que encara condicionen el projecte. No convertir el fitxer en un diari exhaustiu ni en una còpia del registre de Git.
+- Quan una tasca ja estigui resolta i documentada a la font canònica, reduir-la a una nota breu o retirar-la de `MEMORY.md` si ja no condiciona decisions futures.
+- Enllaçar les normes i els procediments de les fonts canòniques en lloc de duplicar-los. Quan una decisió esdevingui una norma estable, incorporar-la a la font corresponent i conservar aquí el context útil.
+- No guardar-hi credencials, contingut de `.env`, dades personals d'alumnes ni altres dades sensibles.
 
 ## Model recomanat de visibilitat
 
@@ -904,18 +952,18 @@ Les bases d'arquitectura, connexió PDO, projectes des de la base de dades, layo
 
 ## Skills disponibles
 
-Consultar els fitxers de `docs/skills/` abans de fer tasques específiques.
+Consultar les skills d'OpenCode a `.opencode/skills/` abans de fer tasques específiques. Cada skill viu a `.opencode/skills/<nom>/SKILL.md` i el camp `name` ha de coincidir amb el nom de la carpeta.
 
 Skills disponibles:
 
 ```text
-docs/skills/01-arquitectura-php.md
-docs/skills/02-base-de-dades.md
-docs/skills/03-rutes-i-vistes.md
-docs/skills/04-auth-rols-i-seguretat.md
-docs/skills/05-google-docs-sheets.md
-docs/skills/06-css-i-ui.md
-docs/skills/07-assets-projectes.md
+.opencode/skills/arquitectura-php/SKILL.md
+.opencode/skills/base-de-dades/SKILL.md
+.opencode/skills/rutes-i-vistes/SKILL.md
+.opencode/skills/auth-rols-i-seguretat/SKILL.md
+.opencode/skills/google-docs-sheets/SKILL.md
+.opencode/skills/css-i-ui/SKILL.md
+.opencode/skills/assets-projectes/SKILL.md
 ```
 
 ---
@@ -925,8 +973,9 @@ docs/skills/07-assets-projectes.md
 Per evitar informació duplicada o contradictòria, cada document té una responsabilitat concreta:
 
 - `AGENTS.md`: criteris generals, arquitectura, seguretat i normes de treball;
+- `MEMORY.md`: context entre sessions, estat de la feina, decisions motivades, aprenentatges i pròxims passos;
 - `database/README.md`: esquema i procediments de base de dades;
-- `docs/skills/`: procediments detallats per àrea;
+- `.opencode/skills/`: procediments detallats per àrea, en format de skill carregable per OpenCode;
 - `README.md`: introducció, instal·lació i enllaços a la documentació canònica;
 - `database/schema.sql`: autoritat executable per reconstruir una base de dades neta.
 

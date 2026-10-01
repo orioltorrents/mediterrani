@@ -1,3 +1,8 @@
+---
+name: base-de-dades
+description: Use when changing Mediterrani MySQL/MariaDB schema, database migrations, PDO queries, relationships, indexes, seed data, or schema documentation.
+---
+
 # Skill 02 — Base de dades
 
 ## Objectiu
@@ -804,7 +809,7 @@ Criteris:
 
 Veure també:
 
-- `docs/skills/07-assets-projectes.md`
+- `.opencode/skills/assets-projectes/SKILL.md`
 
 ### Recursos de tasques
 

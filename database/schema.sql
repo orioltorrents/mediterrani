@@ -7,7 +7,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS evidencies_alumnes, student_indicador_assoliment, indicadors_assoliment, project_academic_year_objectius,
     evidencies_tipus, evidencies_categoria,
     project_team_member_roles, project_team_members, project_teams, project_sections, project_class_assignments,
-    project_academic_years, project_translations, project_roles, classroom_members, classrooms, class_member_history,
+    project_academic_years, project_translations, projects, project_roles, classroom_members, classrooms, class_member_history,
     class_members, class_teachers, classes, academic_years, site_visits, login_attempts, user_activation_tokens, user_web_roles,
     web_roles, languages, users;
 
@@ -141,7 +141,7 @@ CREATE TABLE project_academic_years (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
     academic_year_id INT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    status VARCHAR(50) NOT NULL DEFAULT 'actiu',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_project_year (project_id, academic_year_id),

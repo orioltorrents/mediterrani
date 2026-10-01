@@ -1,4 +1,11 @@
+---
+name: google-docs-sheets
+description: Use when designing or changing Mediterrani Google Docs, Google Sheets, Classroom, evidence imports, synchronization flows, webhooks, or related future data models.
+---
+
 # Skill 05 — Google Docs i Google Sheets
+
+> **Estat verificat 2026-10-01:** `database/schema.sql` no conté taules `google_*`, `documents_*`, `site_pages`, staging de webhooks ni taules d'avaluació avançada. Les seccions que descriuen aquests models s'han d'entendre com a referència històrica o proposta de redisseny, no com a funcionalitat actual operativa.
 
 ## Objectiu
 
@@ -12,12 +19,9 @@ La web ha de mostrar aquesta informació de manera controlada, segura i estructu
 
 ### Implementat
 
-- configuració base a `config/google.php`;
-- integració parcial amb Google Docs API mitjançant compte de servei per sincronitzar pàgines públiques globals a `site_pages`;
 - servei `GoogleSyncService` present com a stub de consulta, sense connexió real amb l'API;
-- estructura de base preparada per a fonts, documents sincronitzats, files importades, execucions i errors;
-- importació manual JSON de documents amb `DocumentSyncController` i `DocumentImportService`;
-- model de dades per a projectes, assets i avaluació ja existent;
+- model bàsic de Classroom amb `classrooms` i `classroom_members`;
+- model d'evidències amb `evidencies_categoria`, `evidencies_tipus` i `evidencies_alumnes`;
 - quan el contingut és d'una edició concreta, la unitat funcional és `project_academic_years`.
 
 ### Encara previst
@@ -27,6 +31,7 @@ La web ha de mostrar aquesta informació de manera controlada, segura i estructu
 - importació robusta directa de Docs i Sheets;
 - sanitització HTML, límits d'importació, logs, reintents i reprocessament d'errors;
 - definició definitiva del flux entre document origen, `google_sources`, `document_sources`, BD i vista final;
+- taules pròpies de documents, fonts Google, staging de webhooks i avaluació avançada, si es confirma el model;
 - sincronització automàtica amb cron o worker.
 
 ---
@@ -45,11 +50,11 @@ Web pública / alumnat / professorat / administració
 
 ---
 
-## Flux implementat per pàgines públiques globals
+## Flux històric per pàgines públiques globals
 
-Les pàgines públiques globals que no depenen d'una edició concreta poden usar `site_pages` com a taula final publicable.
+`site_pages` no forma part de l'esquema actual de Mediterrani. El flux següent procedeix del projecte anterior i s'hauria de redissenyar abans de recuperar-lo.
 
-Flux actual:
+Flux històric:
 
 ```text
 Google Doc
@@ -93,18 +98,18 @@ El render actual de Google Docs a pàgines públiques suporta títols, capçaler
 
 ---
 
-## Nivells actuals
+## Nivells documentats
 
 L'estat del projecte s'ha de llegir en tres nivells diferents:
 
 ```text
-1. Importació manual JSON de documents → implementada.
-2. Persistència Google Workspace       → taules preparades.
-3. API Google Docs per site_pages      → implementació parcial.
+1. Importació manual JSON de documents → històrica o pendent de revalidar amb l'esquema actual.
+2. Persistència Google Workspace       → pendent de modelar.
+3. API Google Docs per site_pages      → històrica; `site_pages` no existeix a l'esquema actual.
 4. API Google per projectes i Sheets   → pendent.
 ```
 
-La importació manual JSON no és encara sincronització amb l'API de Google. Serveix per carregar documents, fonts, fragments i regles de visibilitat a partir d'un payload controlat.
+La importació manual JSON no és encara sincronització amb l'API de Google. Si es recupera, s'ha de tornar a validar contra `database/schema.sql` i adaptar-la al model de Mediterrani.
 
 ---
 
@@ -544,13 +549,13 @@ Fase avançada:
 Apps Script o notificacions des de Google
 ```
 
-Components actuals de la fase inicial:
+Components històrics o pendents de revalidar de la fase inicial:
 
 - `DocumentSyncController`: protegeix la pantalla amb rol `admin`, rep el JSON i mostra resultat o error;
 - `DocumentImportService`: valida l'estructura bàsica del payload i importa documents, fonts, fragments i regles;
 - `resources/views/admin/document-sync.php`: formulari d'entrada manual del JSON.
 
-Limitació actual: aquesta importació manual no té CSRF propi i no defineix límits explícits de mida del payload.
+Limitació: abans de reutilitzar aquesta importació manual cal comprovar que les taules destí existeixen, afegir CSRF si s'exposa com a acció web i definir límits explícits de mida del payload.
 
 ---
 
@@ -617,14 +622,14 @@ Ruta:
 POST /api/classroom/webhook
 ```
 
-Flux actual:
+Flux històric o previst:
 
 ```text
 Google Apps Script o prova local
 → POST /api/classroom/webhook
 → ApiClassroomController
 → ClassroomWebhookService
-→ classroom_webhook_runs / classroom_webhook_rows
+→ staging de webhooks pendent de modelar
 ```
 
 Configuració necessària:
@@ -641,15 +646,11 @@ Authorization: Bearer <token>
 
 El valor rebut ha de coincidir amb `CLASSROOM_WEBHOOK_TOKEN`. El token no s'ha d'escriure mai al codi ni al JavaScript públic.
 
-Estat actual:
+Estat actual verificat:
 
-- el webhook està implementat com a staging genèric;
-- accepta `event_type = classroom_extraction_test` i `classroom_structure_snapshot`;
-- guarda el payload complet a `classroom_webhook_runs.raw_payload_json`;
-- guarda cada fila a `classroom_webhook_rows.raw_row_json`;
-- no transforma encara dades cap a notes, rúbriques o tasques finals;
-- s'ha validat localment amb PowerShell contra XAMPP;
-- s'ha validat des de Google Apps Script mitjançant ngrok amb resposta `200` i `received_rows = 1`.
+- `database/schema.sql` no conté `classroom_webhook_runs` ni `classroom_webhook_rows`;
+- qualsevol webhook de Classroom s'ha de redissenyar o revalidar abans de considerar-lo operatiu;
+- els payloads d'exemple següents es conserven com a referència de format, no com a prova d'implementació actual.
 
 Payload de prova:
 
@@ -765,11 +766,10 @@ google_rubric_id
 role_filter
 ```
 
-Aquest event_type queda primer en staging. El processament manual des de l'admin, mitjançant `ClassroomStructureSnapshotProcessingService`, llegeix les files `pending` i crea o actualitza:
+Aquest `event_type` requeriria una capa de staging que no existeix a l'esquema actual. Si es recupera, el processament manual s'hauria de redissenyar abans de crear o actualitzar:
 
 ```text
 classrooms
-classroom_project_academic_years
 assessment_phases
 assessment_tasks
 project_academic_year_phases
@@ -777,9 +777,9 @@ project_academic_year_phase_tasks
 assessment_task_classroom_links
 ```
 
-El processament manual no toca usuaris, notes, rúbriques finals ni comentaris. Cada fila passa a `processed` o `error` amb `process_error` informatiu.
+Aquest model és una proposta històrica. Actualment només existeixen `classrooms` i `classroom_members` dins aquest bloc.
 
-### Pipeline complet: Google Classroom → base de dades
+### Pipeline proposat: Google Classroom → base de dades
 
 L'extracció des de Google Apps Script funciona amb dues funcions principals al GAS:
 
@@ -791,7 +791,7 @@ L'extracció des de Google Apps Script funciona amb dues funcions principals al 
      `academic_year, classroom_key, classroom_name, classroom_url, google_classroom_id, project_slug, phase_key, phase_title, task_key, task_title, task_url, role_filter, google_course_work_id, google_rubric_id`
 2. **`sendStructureSnapshot()`** — llegeix la pestanya `structure_snapshot` del Sheet, converteix les files a un array d'objectes (amb `readSheetRows` + `rowsToObjects`) i envia un POST JSON al webhook amb `event_type = classroom_structure_snapshot`.
 
-Flux complet validat:
+Flux històric o proposat:
 
 ```text
 Google Classroom API
@@ -800,13 +800,11 @@ Sheet → pestanya structure_snapshot
     ↓ (GAS: sendStructureSnapshot → POST JSON amb Authorization Bearer)
 Ngrok tunnel → XAMPP local
     ↓ (ApiClassroomController → ClassroomWebhookService)
-classroom_webhook_rows (staging, process_status = pending)
+staging de webhooks pendent de modelar
     ↓ (Admin → botó "Processar snapshots pendents")
 ClassroomStructureSnapshotProcessingService
     ↓ (AdminClassroomService::importTaskLinkRowData → transacció)
-classrooms, assessment_phases, assessment_tasks,
-project_academic_year_phases, project_academic_year_phase_tasks,
-assessment_task_classroom_links
+classrooms i futures taules d'avaluació, si s'aprova el model
 ```
 
 **Regla de `role_filter`:**

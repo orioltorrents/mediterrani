@@ -7,8 +7,9 @@ Aquest document separa el que ja està implementat del que encara és previst.
 ## Documentació canònica
 
 - `AGENTS.md`: criteris generals, arquitectura, seguretat i normes de treball.
+- [MEMORY.md](MEMORY.md): memòria del projecte entre sessions, decisions i motius, aprenentatges i pròxims passos.
 - `database/README.md`: esquema i procediments de base de dades.
-- `docs/skills/`: procediments detallats per àrea.
+- `.opencode/skills/`: procediments detallats per àrea en format de skill carregable per OpenCode.
 - `database/schema.sql`: autoritat executable per reconstruir una base de dades neta.
 
 Aquest `README.md` és la introducció breu del projecte. Els detalls s'han de mantenir a la font especialitzada corresponent per evitar duplicacions.
@@ -24,18 +25,16 @@ Aquest `README.md` és la introducció breu del projecte. Els detalls s'han de m
 - vistes públiques, d'autenticació, d'alumnat, de professorat i d'administració;
 - layout comú a `resources/views/layouts/app.php` amb cache-busting per CSS i JS;
 - rutes actuals per a portada, projectes, detall de projecte, login, logout i dashboards privats;
-- projectes carregats des de base de dades amb traduccions i assets associats;
-- fitxa pública de projecte amb selecció d'asset i bloc contextual de notes per alumnat autenticat;
+- projectes carregats des de base de dades amb traduccions;
+- fitxa pública de projecte amb contingut provinent del model de projectes i seccions;
 - login bàsic amb sessió, CSRF a tots els formularis POST, idle timeout de sessió, auditoria de login/logout/contrasenya/accessos, rate limiting d'intents i control de rols;
 - analítica de visites a `site_visits` i panell d'administració amb estadístiques;
 - dashboard d'administració amb visites, dispositius, sistemes operatius, geografia, mapa Leaflet, pàgines més vistes i visites recents;
 - objectius d'aprenentatge, indicadors d'assoliment i semàfor personalitzat per alumne;
 - equips de projecte i membres filtrats per edició i classe;
 - fitxa de projecte amb seccions configurables des de `project_sections`, incloent grups i alumnes;
-- capa de Google Workspace amb taules pròpies lligades a `project_academic_years`;
-- endpoint webhook `POST /api/classroom/webhook` per a ingesta staging segura des de Google Apps Script, protegit amb Bearer Token i validat amb PowerShell local i ngrok;
-- processador manual `ClassroomStructureSnapshotProcessingService` per transformar files `classroom_structure_snapshot` del staging en fases, tasques i enllaços Classroom a les taules finals;
-- pipeline complet validat: Google Classroom API → Google Apps Script → Sheet → Webhook → Staging → Admin → Base de dades;
+- model bàsic de Classroom amb `classrooms` i `classroom_members`, vinculat a cursos, edicions de projecte i usuaris;
+- catàleg inicial d'evidències amb categories, tipus i registres per alumne, edició i objectiu;
 - refactor d'`AdminDashboardService` (600→155 línies) i `AdminClassroomService` (814→193 línies) amb extracció a 7 nous serveis;
 - CSS actiu a `public/assets/css/styles.css` i JavaScript actiu a `public/assets/js/scripts.js`;
 - carpeta d'assets real amb logos de projectes, col·laboradors i eines.
@@ -43,9 +42,10 @@ Aquest `README.md` és la introducció breu del projecte. Els detalls s'han de m
 ### Encara previst
 
 - ampliació de rutes multidioma a `es` i `en`;
-- sincronització real amb Google Docs i Google Sheets;
-- nous `event_type` de Classroom com `classroom_task_snapshot` i `classroom_grade_snapshot`;
+- integració real amb Google Docs i Google Sheets;
+- model propi per a documents, assets, fases, tasques, webhooks i sincronització Google, pendent de redissenyar abans de recuperar estructures de l'aplicació anterior;
 - rúbriques, notes completes i observacions d'aula;
+- importació d'evidències des de Google Sheets;
 - refinament del model de visibilitat per context d'accés;
 - login amb Google.
 
@@ -71,20 +71,12 @@ El nom canònic de la base de dades local és `mediterrani`. La connexió llegei
 - `users`, `web_roles`, `user_web_roles`, `project_roles`;
 - `academic_years`, `classes`, `class_members`, `class_member_history`, `class_teachers`;
 - `projects`, `project_translations`, `project_academic_years`, `project_class_assignments`;
-- `project_assets`, `project_asset_links`;
-- `documents`, `document_sources`, `document_fragments`, `document_visibility_rules`;
-- `project_sections`, `project_section_roles`;
+- `project_sections`;
 - `objectius_aprenentatge`, `indicadors_assoliment`, `project_academic_year_objectius`, `student_indicador_assoliment`;
-- `assessment_sources`, `assessment_import_runs`, `assessment_records`, `assessment_import_errors`;
-- `assessment_phases`, `assessment_tasks`, `project_academic_year_phases`, `project_academic_year_phase_tasks`, `assessment_supports`, `assessment_task_resources`;
+- `evidencies_categoria`, `evidencies_tipus`, `evidencies_alumnes`;
 - `project_teams`, `project_team_members`, `project_team_member_roles`;
-- `google_sources`, `google_documents`, `google_document_blocks`, `google_sheet_rows`, `google_sync_runs`, `google_sync_errors`;
-- `classroom_webhook_runs`, `classroom_webhook_rows`;
-- `site_pages`;
 - `login_attempts`;
-- `classrooms`, `classroom_members`, `classroom_project_academic_years`;
-- `assessment_task_classroom_links`;
-- `settings`;
+- `classrooms`, `classroom_members`;
 - `site_visits`.
 
 ### Observació
@@ -93,29 +85,22 @@ El nom canònic de la base de dades local és `mediterrani`. La connexió llegei
 - `database/schema.sql` és l'autoritat executable per reconstruir una base neta; `database/README.md` documenta el procediment.
 - `scripts/check-schema-coherence.php` valida camps legacy i relacions mal situades després de canvis d'esquema.
 - `scripts/check-code-quality.php` executa les verificacions bàsiques: lint PHP, coherència d'esquema i controladors sense SQL/DDL directe.
-- si la base ja existia abans d'aquesta capa, també cal aplicar `database/09_document_tables_fix.sql`.
-- per deixar els documents completament lligats a l'edició, també cal aplicar `database/17_documents_project_id_cleanup.sql` si la base ve d'una versió anterior.
-- si la base ve d'una versió anterior, `assessment_records.project_id` també s'ha d'eliminar amb `database/18_assessment_records_project_id_cleanup.sql`.
-- `project_id` continua sent correcte en relacions de catàleg del projecte base, com `project_translations`, `project_asset_links` i `project_sections`; el que s'elimina és l'ús de `project_id` com a context de document, import o edició.
+- si una taula només apareix en documentació històrica o en serveis pendents de redisseny, però no a `database/schema.sql` ni en una migració aplicable, no s'ha de considerar part de l'esquema actual.
+- `project_id` continua sent correcte en relacions de catàleg del projecte base, com `project_translations` i `project_sections`; les dades contextuals d'una edició han d'anar a `project_academic_years`.
 - `project_team_member_roles` és la font per mostrar, filtrar i comptar múltiples rols de projecte per membre; `project_team_members.project_role_id` queda com a rol principal de compatibilitat.
 
-### Documents
+### Documents i Google
 
-- els documents van lligats a `project_academic_years`, no directament a `projects`;
-- la clau funcional recomanada és `project_academic_year_id + slug`;
-- `project_id` és correcte per al catàleg base del projecte, però en documents i avaluació es considera herència històrica i s'està eliminant del model.
+- la integració real amb Google Docs i Google Sheets encara està pendent;
+- les taules de documents, fragments, sincronització Google i staging de webhooks de l'aplicació anterior no formen part de l'esquema executable actual;
+- abans de recuperar una funcionalitat antiga, cal redissenyar-la per lligar les dades contextuals a `project_academic_years`.
 
 ### Avaluació
 
-- `assessment_phases` i `assessment_tasks` defineixen la plantilla reutilitzable;
-- `project_academic_year_phases` activa o desactiva fases per edició de projecte;
-- `project_academic_year_phase_tasks` activa o desactiva tasques per edició de projecte;
-- així una fase o tasca pot reutilitzar-se en diferents anys sense copiar la definició.
-- `assessment_sources` i `assessment_import_runs` treballen per `project_academic_year_id`;
-- les notes i imports s'aïllen per edició, no només per projecte;
-- `assessment_records` es llegeix a través de `assessment_sources`.
-- la vista pública de notes és només per alumnat autenticat;
-- les notes de document són internes per defecte i no s'han de mostrar a visitants ni alumnat.
+- el model actual cobreix objectius d'aprenentatge, indicadors d'assoliment i el nivell seleccionat per alumne a `student_indicador_assoliment`;
+- `evidencies_alumnes` registra evidències per alumne, edició i objectiu, però la importació des de fulls de càlcul encara està pendent;
+- les estructures completes de rúbriques, criteris, puntuacions, observacions, fases i tasques d'avaluació continuen pendents de disseny en el model nou;
+- les dades d'avaluació són privades i no s'han de mostrar a visitants ni alumnat fora del context autoritzat.
 
 ### Regla del model
 
@@ -126,13 +111,14 @@ El nom canònic de la base de dades local és `mediterrani`. La connexió llegei
 ### Quan usar cada una
 
 - `projects`: nom, slug, ordre, activació i relacions que són comunes a totes les edicions;
-- `project_academic_years`: documents, imports, notes, assignacions, visibilitat i qualsevol dada que pugui variar per curs;
+- `project_academic_years`: assignacions, equips, objectius, Classroom, evidències i qualsevol dada contextual que pugui variar per curs;
 - si tens dubte, pregunta't si la dada canviaria l'any que ve sense canviar el projecte base; si la resposta és sí, usa `project_academic_years`.
 
 ### Encara previst
 
 - integració real amb Google Docs i Google Sheets;
 - estructures de rúbriques i notes definitives;
+- importació d'evidències des de Google Sheets;
 - ampliacions de visibilitat per context si calen més endavant.
 
 ## Rutes actuals

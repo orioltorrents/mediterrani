@@ -1,3 +1,8 @@
+---
+name: auth-rols-i-seguretat
+description: Use when changing Mediterrani authentication, sessions, CSRF, roles, permissions, contextual access control, password handling, audits, or security-sensitive flows.
+---
+
 # Skill 04 — Autenticació, rols i seguretat
 
 ## Objectiu

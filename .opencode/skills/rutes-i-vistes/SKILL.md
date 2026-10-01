@@ -1,4 +1,9 @@
-﻿# Skill 03 — Rutes i vistes
+﻿---
+name: rutes-i-vistes
+description: Use when changing Mediterrani routes, Router definitions, controllers that render pages, PHP views under resources/views, layouts, or public/private page structure.
+---
+
+# Skill 03 — Rutes i vistes
 
 ## Objectiu
 

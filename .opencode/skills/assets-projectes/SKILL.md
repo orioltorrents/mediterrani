@@ -1,4 +1,11 @@
+---
+name: assets-projectes
+description: Use when changing Mediterrani project logos, public assets, future project asset data models, asset display rules, or project visual resource handling.
+---
+
 # Skill 07 - Assets de projectes
+
+> **Estat verificat 2026-10-01:** `database/schema.sql` no conté `project_assets` ni `project_asset_links`. Aquesta skill conserva el criteri futur per gestionar assets de projecte, però no s'ha d'utilitzar com a instrucció executable fins que el model es redissenyi i s'incorpori a l'esquema.
 
 ## Objectiu
 
@@ -17,12 +24,11 @@ Aquesta skill s'ha d'utilitzar quan calgui:
 ### Implementat
 
 - carpeta real d'assets a `public/assets/logos/`;
-- logos de projectes, col·laboradors i eines ja presents al repositori;
-- `project_assets` i `project_asset_links` com a catàleg i relació;
-- assets recuperats als llistats públics, als dashboards i a la fitxa de projecte.
+- logos de projectes, col·laboradors i eines ja presents al repositori.
 
 ### Encara previst
 
+- redissenyar el model de dades d'assets abans de recuperar `project_assets` i `project_asset_links`;
 - ampliar l'ús dels assets a més contextos interns;
 - afinar el criteri de selecció del logo principal quan un projecte tingui diversos assets;
 - reutilitzar aquest catàleg també per a recursos de tasques quan toqui.
@@ -31,7 +37,9 @@ Quan un projecte tingui logo, la targeta l'ha de mostrar dins la caixa, alineat 
 
 ---
 
-## Model de dades
+## Model de dades futur
+
+Les taules següents no formen part de l'esquema actual. Són una proposta de model futur.
 
 Taules principals:
 
@@ -193,8 +201,8 @@ Si la targeta de projecte es veu en columna, revisar que el bloc de mitjans i el
 
 ## Relació amb altres skills
 
-- `docs/skills/02-base-de-dades.md` per l'esquema i les consultes SQL.
-- `docs/skills/06-css-i-ui.md` per la presentació visual dels logos.
+- `.opencode/skills/base-de-dades/SKILL.md` per l'esquema i les consultes SQL.
+- `.opencode/skills/css-i-ui/SKILL.md` per la presentació visual dels logos.
 
 ## Extensió prevista per a tasques
 

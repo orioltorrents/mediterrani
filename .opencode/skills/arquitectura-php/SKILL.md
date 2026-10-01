@@ -1,3 +1,8 @@
+---
+name: arquitectura-php
+description: Use when changing Mediterrani PHP architecture, controllers, services, helpers, project structure, modularity, or responsibility boundaries in the custom PHP application.
+---
+
 # Skill 01 — Arquitectura PHP
 
 ## Objectiu

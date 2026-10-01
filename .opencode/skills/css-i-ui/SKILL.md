@@ -1,3 +1,8 @@
+---
+name: css-i-ui
+description: Use when changing Mediterrani CSS, UI components, responsive behavior, visual states, accessibility, BEM classes, or public/assets styling.
+---
+
 # Skill 06 — CSS i UI
 
 ## Objectiu
